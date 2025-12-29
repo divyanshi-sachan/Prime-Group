@@ -16,14 +16,13 @@ export default function DiscoverPage() {
 
         {/* Background Image */}
         <Image
-  src="/img/discover1.png"
+  src="/img/banner1.webp"
   alt="Discover Your Perfect Match"
   fill
   priority
   className="
     object-cover
     scale-105 sm:scale-100
-    object-[right_20%] sm:object-[right_top]
   "
   sizes="100vw"
 />
@@ -51,19 +50,10 @@ export default function DiscoverPage() {
                 curated for meaningful and lasting relationships.
               </p>
 
-              <button className="inline-flex items-center gap-2 
-                rounded-full bg-[#0a3a6b] px-6 py-3 
-                text-sm font-semibold uppercase tracking-wide text-white
-                hover:bg-[#0b4a8a] transition">
-                Discover Profiles
-              </button>
-
             </div>
           </div>
         </div>
       </div>
-
-      {/* ================= PROFILES SECTION ================= */}
       <section
         className="py-20 px-4 sm:px-6 lg:px-8 shadow-lg"
         style={{ backgroundColor: 'var(--pure-white)' }}

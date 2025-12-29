@@ -7,11 +7,29 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Calendar, Ruler, Users, Home, Heart, Phone } from "lucide-react";
 import profilesData from "@/data/profiles.json";
+import { useState, useEffect } from "react";
 
 export default function ProfileDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const profile = profilesData.profiles.find(p => p.id === id);
+  const [showBackButton, setShowBackButton] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Only hide on mobile (window width < 640px) and when scrolled down
+      if (window.innerWidth < 640) {
+        setShowBackButton(window.scrollY < 100);
+      } else {
+        setShowBackButton(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial state
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   if (!profile) {
     notFound();
@@ -37,8 +55,12 @@ export default function ProfileDetailPage() {
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: 'var(--pure-white)' }}>
-      {/* Back Button - Fixed in top left corner */}
-      <div className="fixed top-28 left-5 sm:left-10 z-50">
+      {/* Back Button - Fixed in top left corner, only visible at top on mobile */}
+      <div 
+        className={`fixed top-20 left-4 sm:left-10 z-50 transition-opacity duration-300 sm:opacity-100 ${
+          showBackButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
         <Link href="/discover">
           <Button 
             variant="outline"
@@ -49,7 +71,8 @@ export default function ProfileDetailPage() {
             }}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Profiles
+            <span className="hidden sm:inline">Back to Profiles</span>
+            <span className="sm:hidden">Back</span>
           </Button>
         </Link>
       </div>

@@ -12,15 +12,17 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import MobileNav from "./mobile-nav";
-import SearchBar from "./search";
 import LoginModal from "./login-modal";
 import ScrollProgress from "../ui/scroll-progress";
+import { Heart } from "lucide-react";
+import { useFavorites } from "@/context/favorites-context";
 import gsap from "gsap";
 import { useWindowScroll } from "react-use";
 import { useEffect, useRef, useState } from "react";
 
 
 export default function MainNav() {
+   const { favoritesCount } = useFavorites();
 
    // State for toggling audio and visual indicator
    const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -77,9 +79,9 @@ export default function MainNav() {
   return (
     <>
     <ScrollProgress  className="sticky top-0 z-50"/>
-    <div ref={navContainerRef} className="supports-backdrop-blur:bg-background/90 fixed top-0 left-0 right-0 backdrop-blur-xl z-50 lg:px-16 w-full border-b-2 shadow-md" style={{ backgroundColor: 'var(--primary-blue)', borderColor: 'var(--accent-gold)' }}>
+    <div ref={navContainerRef} className="supports-backdrop-blur:bg-background/90 fixed top-0 left-0 right-0 backdrop-blur-xl z-50 lg:px-16 w-full shadow-md rounded-none" style={{ backgroundColor: 'var(--primary-blue)' }}>
       <header className="z-50">
-        <div className="flex h-20 items-center justify-between">
+        <div className="flex h-14 sm:h-16 items-center justify-between">
           <div className="flex items-center">
             <MobileNav />
             <Link href="/" className="flex items-center space-x-2">
@@ -87,8 +89,8 @@ export default function MainNav() {
                src="/img/home.png"
                alt="Logo"
                priority
-               width={70}
-               height={70}
+               width={50}
+               height={50}
                className="object-contain"
              />
               <span className="text-xl font-playfair-display font-bold text-gold-gradient">
@@ -102,7 +104,7 @@ export default function MainNav() {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    "group inline-flex text-base font-semibold h-9 w-max bg-transparent items-center justify-center rounded-md px-4 py-2 text-white transition-colors"
+                    "group inline-flex text-base font-semibold h-9 w-max bg-transparent items-center justify-center rounded-md px-4 py-2 text-white transition-colors hover:text-gold-gradient"
                   )}
                 >
                   <Link href="/" className="font-montserrat font-semibold">
@@ -114,7 +116,7 @@ export default function MainNav() {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    "group inline-flex text-base font-semibold h-9 w-max bg-transparent items-center justify-center rounded-md px-4 py-2 text-white transition-colors"
+                    "group inline-flex text-base font-semibold h-9 w-max bg-transparent items-center justify-center rounded-md px-4 py-2 text-white transition-colors hover:text-gold-gradient"
                   )}
                 >
                   <Link href="/discover" className="font-montserrat font-semibold">
@@ -124,29 +126,44 @@ export default function MainNav() {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:opacity-80" style={{ color: 'var(--pure-white)' }}>
+                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:bg-transparent hover:text-gold-gradient" style={{ color: 'var(--pure-white)' }}>
                     <Link href="/blog">Blogs</Link>
                   </Button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:opacity-80" style={{ color: 'var(--pure-white)' }}>
+                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:bg-transparent hover:text-gold-gradient" style={{ color: 'var(--pure-white)' }}>
                     <Link href="/faqs">FAQs</Link>
                   </Button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
               <NavigationMenuLink asChild>
-                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:opacity-80" style={{ color: 'var(--pure-white)' }}>
+                  <Button variant="ghost" asChild className="font-semibold font-montserrat hover:bg-transparent hover:text-gold-gradient" style={{ color: 'var(--pure-white)' }}>
                     <Link href="/contact-us">Contact US</Link>
                   </Button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
-          <div className="flex items-center ">
-            <SearchBar />
+          <div className="flex items-center gap-2">
+            <Link href="/favorites">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-transparent group"
+                style={{ color: 'var(--pure-white)' }}
+              >
+                <Heart className="h-6 w-6 group-hover:text-gold-gradient transition-colors" style={{ color: 'var(--pure-white)' }} />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold bg-gold-gradient text-black">
+                    {favoritesCount > 9 ? '9+' : favoritesCount}
+                  </span>
+                )}
+                <span className="sr-only">Favorites</span>
+              </Button>
+            </Link>
             <Link href="/sign-in">
               <LoginModal />
             </Link>

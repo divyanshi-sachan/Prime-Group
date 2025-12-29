@@ -13,21 +13,29 @@ import HeroPage from "@/components/home/heropage";
 import LoadingOverlay from "@/components/home/loading-overlay";
 import HeroGsap from "@/components/home/hero-gsap";
 import SubscriptionPlan from "@/components/home/subscription-plan";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <main className="relative min-h-screen w-screen overflow-x-hidden">
       {/* <LoadingOverlay /> */}
       <HeroGsap />
-      <FeaturedProfiles />
-      <BeverageLanding />
-      {/* <FeaturesSection /> */}
-      {/* <HeroVideoDialogDemoTopInBottomOut /> */}
-      <Feature6 />
-      <HeadSection />
-      <SubscriptionPlan />
-      {/* <AnimatedTestimonialsDemo /> */}
-      <Faq3Demo /> 
+      
+      {/* Content wrapper */}
+      <div className="relative">
+        {/* Main content */}
+        <div className="relative z-20 mt-20">
+          <FeaturedProfiles />
+        <BeverageLanding />
+        {/* <FeaturesSection /> */}
+        {/* <HeroVideoDialogDemoTopInBottomOut /> */}
+        <Feature6 />
+        <HeadSection />
+          <SubscriptionPlan />
+          {/* <AnimatedTestimonialsDemo /> */}
+          <Faq3Demo /> 
+        </div>
+      </div>
     </main>
   );
 }

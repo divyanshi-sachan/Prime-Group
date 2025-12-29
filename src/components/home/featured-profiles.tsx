@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Briefcase, GraduationCap } from "lucide-react";
-import { useState } from "react";
+import { useFavorites } from "@/context/favorites-context";
 
 interface Profile {
   id: string;
@@ -55,39 +55,48 @@ const profiles: Profile[] = [
 ];
 
 export default function FeaturedProfiles() {
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-
-  const toggleFavorite = (id: string) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(id)) {
-      newFavorites.delete(id);
-    } else {
-      newFavorites.add(id);
-    }
-    setFavorites(newFavorites);
-  };
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 shadow-lg" style={{ backgroundColor: 'var(--pure-white)' }}>
-      <div className="container mx-auto max-w-7xl">
+    <section className="relative pt-0 pb-20 px-4 sm:px-6 lg:px-8 shadow-lg" style={{ backgroundColor: 'var(--pure-white)' }}>
+      {/* Mandala - Left corner */}
+      <div className="absolute top-2 left-4 sm:top-4 sm:left-6 md:top-6 md:left-12 lg:top-8 lg:left-16 z-10 pointer-events-none" style={{ width: 'fit-content', height: 'fit-content' }}>
+        <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 lg:w-56 lg:h-56">
+          <Image
+            src="/img/mandala1.png"
+            alt="Mandala"
+            fill
+            className="object-contain"
+            style={{ 
+              animation: 'spin 20s linear infinite'
+            }}
+          />
+        </div>
+      </div>
+      
+      <div className="container mx-auto max-w-7xl relative z-20">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="mb-16"
         >
-          <div className="inline-block mb-4 px-6 py-2 rounded-full" style={{ backgroundColor: 'var(--primary-blue)' }}>
-            <span className="text-sm font-montserrat font-semibold uppercase tracking-wide text-gold-gradient">
-              Featured Profiles
-            </span>
+          {/* Badge Container - Centered */}
+          <div className="flex justify-center mb-4 pt-4">
+            {/* Badge centered */}
+            <div className="inline-block px-6 py-2 rounded-full" style={{ backgroundColor: 'var(--primary-blue)' }}>
+              <span className="text-sm font-montserrat font-semibold uppercase tracking-wide text-gold-gradient">
+                Featured Profiles
+              </span>
+            </div>
           </div>
           
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-playfair-display font-bold mb-4 text-gold-gradient" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.15)' }}>
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-playfair-display font-bold mb-4 text-center text-gold-gradient" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.15)' }}>
             Find Your Perfect Match
           </h2>
-          <p className="text-lg sm:text-xl font-montserrat max-w-2xl mx-auto" style={{ color: 'var(--primary-blue)' }}>
+          <p className="text-lg sm:text-xl font-montserrat max-w-2xl mx-auto text-center" style={{ color: 'var(--primary-blue)' }}>
             Discover our handpicked profiles of accomplished individuals looking for their life partner
           </p>
         </motion.div>
@@ -109,11 +118,11 @@ export default function FeaturedProfiles() {
                 onClick={() => toggleFavorite(profile.id)}
                 className="absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
                 style={{ 
-                  backgroundColor: favorites.has(profile.id) ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.8)'
+                  backgroundColor: isFavorite(profile.id) ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.8)'
                 }}
               >
                 <Heart 
-                  className={`h-5 w-5 ${favorites.has(profile.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+                  className={`h-5 w-5 ${isFavorite(profile.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
                 />
               </button>
 

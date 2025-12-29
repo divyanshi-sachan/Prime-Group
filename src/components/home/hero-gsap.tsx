@@ -23,13 +23,12 @@ const HeroGsap = () => {
         }}
       >
         <Image
-          src="/img/herosection.png"
+          src="/img/discover1.png"
           alt="Hero Section"
           fill
           priority
-          className="object-cover"
+          className="object-cover md:object-[center_35%] object-[right_center]"
           style={{ 
-            objectPosition: 'center 35%',
             position: 'absolute',
             top: 0,
             left: 0,
@@ -50,13 +49,18 @@ const HeroGsap = () => {
         <div className="container mx-auto px-5 sm:px-10 lg:px-16">
           <div className="max-w-2xl">
             {/* Main Heading */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair-display font-bold mb-6 leading-tight text-gold-gradient">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-playfair-display font-bold mb-6 leading-tight" style={{ 
+  background: 'linear-gradient(135deg, #ffffff 0%, var(--gold-light) 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text'
+}}>
               Find Your Perfect Match
             </h1>
 
             {/* Description Text */}
             <p className="text-base sm:text-lg md:text-xl font-montserrat mb-8 leading-relaxed" style={{ color: 'var(--pure-white)' }}>
-              The Golden Bonds Matrimony brings together natural souls that connect with cherished moments, creating beautiful and lasting relationships.
+              Prime Group brings together natural souls creating beautiful relationships.
             </p>
 
             {/* CTA Button */}

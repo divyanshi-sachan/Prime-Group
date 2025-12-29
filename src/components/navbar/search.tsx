@@ -28,9 +28,9 @@ export default function SearchBar() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative hover:opacity-80" style={{ color: 'var(--pure-white)' }}
+          className="relative hover:bg-transparent group" style={{ color: 'var(--pure-white)' }}
         >
-          <SearchIcon className="h-10 w-10 stroke-[2.5px]" style={{ color: 'var(--pure-white)' }} />
+          <SearchIcon className="h-10 w-10 stroke-[2.5px] group-hover:text-gold-gradient transition-colors" style={{ color: 'var(--pure-white)' }} />
           <span className="sr-only">Search</span>
         </Button>
       </SheetTrigger>

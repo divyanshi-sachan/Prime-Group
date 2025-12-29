@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Briefcase, GraduationCap } from "lucide-react";
-import { useState } from "react";
+import { useFavorites } from "@/context/favorites-context";
 
 interface ProfileData {
   id: string;
@@ -38,10 +38,11 @@ interface ProfileCardProps {
 }
 
 export default function ProfileCard({ data, index }: ProfileCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const currentYear = new Date().getFullYear();
   const age = currentYear - data.birth_year;
   const location = `${data.residential_address.city}, ${data.residential_address.state}`;
+  const favorite = isFavorite(data.id);
 
   // Use placeholder images - you can replace with actual profile images
   const profileImages = [
@@ -70,15 +71,16 @@ export default function ProfileCard({ data, index }: ProfileCardProps) {
       <button
         onClick={(e) => {
           e.preventDefault();
-          setIsFavorite(!isFavorite);
+          e.stopPropagation();
+          toggleFavorite(data.id);
         }}
         className="absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
         style={{ 
-          backgroundColor: isFavorite ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.8)'
+          backgroundColor: favorite ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.8)'
         }}
       >
         <Heart 
-          className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+          className={`h-5 w-5 ${favorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
         />
       </button>
 
