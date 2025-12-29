@@ -10,7 +10,8 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createContact } from "@/lib/actions/contact.actions";
+// Database actions removed - landing page only
+// import { createContact } from "@/lib/actions/contact.actions";
 import { useRouter } from "next/navigation";
 export const Contact1 = () => {
   const [date, setDate] = useState<Date | undefined >(new Date());
@@ -21,21 +22,11 @@ export const Contact1 = () => {
   const router = useRouter();
 
   async function createContactUs(){
-  try {
-    const newConatct = await createContact({
-      date,
-      firstName,
-      lastName,
-      email,
-      message,
-    })
-    if (newConatct){
-      router.push(`/`)
-    }
-    console.log("New contact created successfully:", newConatct);
-  } catch (error) {
-    console.log(error);
-  }
+    // Database functionality removed - landing page only
+    // Contact form submission will be implemented when database is set up
+    alert("Thank you for your message! We'll get back to you soon.");
+    console.log("Contact form submitted:", { date, firstName, lastName, email, message });
+    router.push(`/`);
   }
 
   return (

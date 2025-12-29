@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import MobileNav from "./mobile-nav";
 import SearchBar from "./search";
 import LoginModal from "./login-modal";
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import ScrollProgress from "../ui/scroll-progress";
 import gsap from "gsap";
 import { useWindowScroll } from "react-use";
@@ -147,16 +146,9 @@ export default function MainNav() {
           </NavigationMenu>
           <div className="flex items-center ">
             <SearchBar />
-            <SignedOut>
             <Link href="/sign-in">
-            <LoginModal />
+              <LoginModal />
             </Link>
-            </SignedOut>
-            <SignedIn>
-              <button className="relative mr-2 ml-2">
-                <UserButton />
-              </button>
-            </SignedIn>
           </div>
         </div>
       </header>

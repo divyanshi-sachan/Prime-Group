@@ -63,12 +63,14 @@ export default function BeverageLanding() {
               className="text-6xl md:text-9xl font-bold text-[#FF7748] text-center leading-none"
               text="MEMOWRIES"
             /> */}
-            <MorphingText texts={texts} className="text-6xl md:text-9xl font-bold text-center leading-none font-playfair-display" style={{ 
+            <div className="text-6xl md:text-9xl font-bold text-center leading-none font-playfair-display" style={{ 
               background: 'linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-gold) 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
-            }}/>
+            }}>
+              <MorphingText texts={texts} className="w-full" />
+            </div>
             {/* Polaroid 2 */}
             <div className="md:hidden transform rotate-6 bg-white p-1 shadow-lg border-2" style={{ borderColor: 'var(--accent-gold)' }}>
               <Image

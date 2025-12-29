@@ -33,21 +33,20 @@ const About = () => {
   return (
     <div id="about" className="min-h-screen w-screen">
       <div className="relative mb-8 mt-36 flex flex-col items-center gap-5">
-        <p className="font-general text-sm uppercase md:text-[10px]">
-          Welcome to Memowries
+          <p className="font-general text-sm uppercase md:text-[10px]">
+          Welcome to Prime Group
         </p>
 
         {/* MEMOW is about to change the way you experience photography. */}
         <AnimatedTitle
-          title="MEM<b>O</b>W transforms your<br />photography <b>e</b>xperience"
+          title="Prime <b>G</b>roup connects you<br />with your <b>p</b>erfect match"
           containerClass="mt-5 !text-black text-center"
         />
 
         <div className="about-subtext">
-          {/* <p>Book Your Shoot, Save Your Mémories Instantly.</p> */}
           <p className="text-gray-500">
-          We're building a platform that connects you with top photographers and videographers, 
-          making high-quality content more accessible than ever.
+          We're building a trusted platform that helps you find your life partner, 
+          connecting verified profiles and meaningful relationships.
           </p>
         </div>
       </div>
@@ -62,7 +61,7 @@ const About = () => {
             className="absolute left-0 top-0 size-full object-cover"
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent text-white rounded-xl">
-            <VelocityScroll className="font-mono text-white bottom-0">MAKE YOUR MEMOWRIES</VelocityScroll>
+            <VelocityScroll className="font-mono text-white bottom-0">FIND YOUR PERFECT MATCH</VelocityScroll>
           </div>
         </div>
       </div>

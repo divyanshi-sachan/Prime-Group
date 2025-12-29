@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Link } from "lucide-react"
 import { useState } from "react"
-import { createSubscribe } from "@/lib/actions/subscribe.action";
+// Database actions removed - landing page only
+// import { createSubscribe } from "@/lib/actions/subscribe.action";
 import { useRouter } from "next/navigation"
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
@@ -18,18 +19,12 @@ export default function CommingSoon() {
   const [email, setEmail] = useState<string>('');
 
   async function createSubscribes(){
-    try {
-      const newSubscribe = await createSubscribe({
-        email
-      })
-      if(newSubscribe){
-        route.push('/')
-      }
-      console.log("New contact created successfully:", newSubscribe);
-    } catch (error) {
-      console.log(error);
-    }
-    }
+    // Database functionality removed - landing page only
+    // Subscription will be implemented when database is set up
+    alert("Thank you for subscribing! We'll notify you when we launch.");
+    console.log("Subscription:", email);
+    route.push('/');
+  }
   return (
     <div className="min-h-screen w-full bg-gradient-to-r from-pink-50 via-yellow-50 to-blue-50">
       <div className="container mx-auto px-4 py-8 flex flex-col min-h-screen">

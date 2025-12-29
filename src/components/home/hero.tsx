@@ -9,7 +9,8 @@ import { ArrowRight } from 'lucide-react';
 import HyperText from "../ui/hyper-text";
 import gsap from 'gsap';
 import SplitText from '@/lib/split-text';
-import { createServive } from "@/lib/actions/package.action";
+// Database actions removed - landing page only
+// import { createServive } from "@/lib/actions/package.action";
  
 const texts = [
   "Hello",
@@ -118,14 +119,14 @@ export default function Hero() {
     <div className="relative z-10 px-4 py-8 md:py-16 lg:py-20 mx-auto max-w-7xl h-full flex flex-col justify-between top-12">
       <div ref={buttonRef} className="flex flex-col items-start gap-6 md:gap-8">
         <h1 ref={subtitleRef} className="max-w-4xl text-4xl md:text-4xl lg:text-6xl font-bold tracking-tight text-white">
-        Book Your Shoot, Save Your Mémories Instantly.
+        Find Your Perfect Life Partner Today.
         </h1>
         
         <Button 
           className="px-4 py-2 md:px-6 md:py-3 text-base md:text-lg bg-orange-500 hover:bg-orange-600 text-white rounded-full"
-          onClick={()=>{createServive()}}
+          onClick={()=>{console.log("Explore profiles - matrimonial website")}}
         >
-          Explore All Product
+          Browse Profiles
         </Button>
       </div>
 
@@ -141,12 +142,12 @@ export default function Hero() {
             className="h-[50%] w-[40%] object-contain"
           />
           <div ref={sideTextRef} className="space-y-2">
-            <h3 className="font-bold text-lg md:text-xl">SEE THE PRODUCT DETAIL</h3>
+            <h3 className="font-bold text-lg md:text-xl">VIEW PROFILES</h3>
             <Button 
               variant="ghost" 
               className="p-0 h-auto text-orange-500 hover:text-orange-600"
             >
-              See All <ArrowRight className="w-4 h-4 ml-1" />
+              Explore <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -159,7 +160,7 @@ export default function Hero() {
       <div ref={subtitleRef} className="absolute top-[135%] md:top-[145%] w-">
       <HyperText
         className="text-center mx-auto text-7xl z-50 sm:text-8xl md:text-8xl lg:text-[14rem] font-black text-white opacity-90 leading-none tracking-tight mt-8 md:mt-0 "
-        text="MEMOWRIES"
+        text="PRIME GROUP"
       />
 
       {/* <VelocityScroll className=" text-white">MAKE YOUR MEMOWRIES</VelocityScroll> */}
