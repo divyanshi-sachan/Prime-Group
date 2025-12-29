@@ -1,6 +1,7 @@
 'use client'
 
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Briefcase, GraduationCap } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
@@ -172,9 +173,11 @@ export default function FeaturedProfiles() {
                 </div>
 
                 {/* View Profile Button */}
-                <button className="w-full mt-6 py-3 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg bg-gold-gradient text-black">
-                  View Profile
-                </button>
+                <Link href={`/discover/${profile.id}`}>
+                  <button className="w-full mt-6 py-3 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg bg-gold-gradient text-black">
+                    View Profile
+                  </button>
+                </Link>
               </div>
             </motion.div>
           ))}
@@ -188,13 +191,15 @@ export default function FeaturedProfiles() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center mt-12"
         >
-          <button className="px-8 py-4 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl border-2" style={{ 
-            borderColor: 'var(--primary-blue)',
-            color: 'var(--primary-blue)',
-            backgroundColor: 'transparent'
-          }}>
-            View All Profiles
-          </button>
+          <Link href="/discover">
+            <button className="px-8 py-4 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl border-2" style={{ 
+              borderColor: 'var(--primary-blue)',
+              color: 'var(--primary-blue)',
+              backgroundColor: 'transparent'
+            }}>
+              View All Profiles
+            </button>
+          </Link>
         </motion.div>
       </div>
     </section>

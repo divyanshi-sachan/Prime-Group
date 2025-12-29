@@ -9,10 +9,160 @@ import { ArrowLeft, MapPin, Briefcase, GraduationCap, Calendar, Ruler, Users, Ho
 import profilesData from "@/data/profiles.json";
 import { useState, useEffect } from "react";
 
+// Featured profiles data (matching featured-profiles component)
+const featuredProfiles = [
+  {
+    id: "1",
+    name: "Priya Sharma",
+    birth_year: 1996,
+    education: {
+      qualification: "B.Tech",
+      specialization: "Computer Science"
+    },
+    occupation: {
+      job_profile: "Software Engineer",
+      organization: "Tech Corp",
+      salary_package: null
+    },
+    personal_details: {
+      dob: "1996-01-01",
+      birthplace: "Mumbai",
+      height: "5'4\"",
+      complexion: "Fair"
+    },
+    family_details: {
+      father: { name: "N/A", profession: "N/A" },
+      mother: { name: "N/A", profession: "N/A" },
+      siblings: []
+    },
+    residential_address: {
+      city: "Mumbai",
+      state: "Maharashtra",
+      country: "India"
+    },
+    gotra: [],
+    family_base: "N/A",
+    preferences: "Looking for a compatible partner",
+    contact: {
+      whatsapp: null
+    }
+  },
+  {
+    id: "2",
+    name: "Arjun Patel",
+    birth_year: 1994,
+    education: {
+      qualification: "MBA",
+      specialization: "Finance"
+    },
+    occupation: {
+      job_profile: "Business Consultant",
+      organization: "Consulting Firm",
+      salary_package: null
+    },
+    personal_details: {
+      dob: "1994-01-01",
+      birthplace: "Ahmedabad",
+      height: "5'10\"",
+      complexion: "Wheatish"
+    },
+    family_details: {
+      father: { name: "N/A", profession: "N/A" },
+      mother: { name: "N/A", profession: "N/A" },
+      siblings: []
+    },
+    residential_address: {
+      city: "Ahmedabad",
+      state: "Gujarat",
+      country: "India"
+    },
+    gotra: [],
+    family_base: "N/A",
+    preferences: "Looking for a compatible partner",
+    contact: {
+      whatsapp: null
+    }
+  },
+  {
+    id: "3",
+    name: "Kavya Reddy",
+    birth_year: 1998,
+    education: {
+      qualification: "MBBS",
+      specialization: "MD"
+    },
+    occupation: {
+      job_profile: "Doctor",
+      organization: "Hospital",
+      salary_package: null
+    },
+    personal_details: {
+      dob: "1998-01-01",
+      birthplace: "Hyderabad",
+      height: "5'5\"",
+      complexion: "Fair"
+    },
+    family_details: {
+      father: { name: "N/A", profession: "N/A" },
+      mother: { name: "N/A", profession: "N/A" },
+      siblings: []
+    },
+    residential_address: {
+      city: "Hyderabad",
+      state: "Telangana",
+      country: "India"
+    },
+    gotra: [],
+    family_base: "N/A",
+    preferences: "Looking for a compatible partner",
+    contact: {
+      whatsapp: null
+    }
+  },
+  {
+    id: "4",
+    name: "Rohan Singh",
+    birth_year: 1992,
+    education: {
+      qualification: "MBA",
+      specialization: "IIM"
+    },
+    occupation: {
+      job_profile: "Investment Banker",
+      organization: "Bank",
+      salary_package: null
+    },
+    personal_details: {
+      dob: "1992-01-01",
+      birthplace: "Delhi",
+      height: "5'11\"",
+      complexion: "Wheatish"
+    },
+    family_details: {
+      father: { name: "N/A", profession: "N/A" },
+      mother: { name: "N/A", profession: "N/A" },
+      siblings: []
+    },
+    residential_address: {
+      city: "Delhi",
+      state: "NCR",
+      country: "India"
+    },
+    gotra: [],
+    family_base: "N/A",
+    preferences: "Looking for a compatible partner",
+    contact: {
+      whatsapp: null
+    }
+  }
+];
+
 export default function ProfileDetailPage() {
   const params = useParams();
   const id = params?.id as string;
-  const profile = profilesData.profiles.find(p => p.id === id);
+  // Check both profiles.json and featured profiles
+  const profile = profilesData.profiles.find(p => p.id === id) || 
+                  featuredProfiles.find(p => p.id === id);
   const [showBackButton, setShowBackButton] = useState(true);
 
   useEffect(() => {
