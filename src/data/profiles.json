@@ -1,0 +1,247 @@
+{
+  "profiles": [
+    {
+      "id": "P001",
+      "name": "Apoorva",
+      "birth_year": 1995,
+      "education": {
+        "qualification": "B.Tech",
+        "specialization": "Computer Science"
+      },
+      "occupation": {
+        "job_profile": "Software Engineer",
+        "organization": "Amazon, Bangalore",
+        "salary_package": "50+ LPA"
+      },
+      "personal_details": {
+        "dob": "1995-07-08",
+        "birth_time": null,
+        "birthplace": "Meerut",
+        "height": "5 ft 3 in",
+        "complexion": "Wheatish"
+      },
+      "family_details": {
+        "father": { "name": "Late Snehdarshi Ambhoj", "profession": "Journalist" },
+        "mother": { "name": "Late Savita Ambhoj", "profession": "Lecturer & Lawyer" },
+        "siblings": [
+          { "name": "Shudh Ambhoj", "relation": "Brother", "profession": "Doctor", "marital_status": "Unmarried" },
+          { "name": "Surabhi Ambhoj", "relation": "Sister", "profession": "Advocate (Delhi)", "marital_status": "Married" }
+        ]
+      },
+      "gotra": ["Lohre", "Pathar Chauhan", "Taak"],
+      "family_base": "Meerut based",
+      "residential_address": { "city": "Meerut", "state": "Uttar Pradesh", "country": "India" },
+      "preferences": "Educated & liberal family; software engineer or good professional",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P002",
+      "name": "Vidhi Hans",
+      "birth_year": 1994,
+      "education": { "qualification": "M.Sc", "specialization": "Food Technology" },
+      "occupation": {
+        "job_profile": "Microbiologist",
+        "organization": "EPICU Beverage (Parle Agro)",
+        "salary_package": "As per norms"
+      },
+      "personal_details": {
+        "dob": "1994-07-31",
+        "birth_time": null,
+        "birthplace": "Karnal",
+        "height": "5 ft 4 in",
+        "complexion": "Fair"
+      },
+      "family_details": {
+        "father": { "name": "Varinder Hans", "profession": "Retired Gazetted Officer (NDRI)" },
+        "mother": { "name": "Ranjana Hans", "profession": "Homemaker" },
+        "siblings": [
+          { "name": "Abhishek Hans", "relation": "Brother", "profession": "Chef (USA)", "marital_status": "Unmarried" }
+        ]
+      },
+      "gotra": ["Hans", "Chotala", "Sahota"],
+      "family_base": "Punjab based",
+      "residential_address": { "city": "Karnal", "state": "Haryana", "country": "India" },
+      "preferences": "Smart & well educated groom",
+      "contact": { "whatsapp": "9254879790" }
+    },
+    {
+      "id": "P003",
+      "name": "Sheetal",
+      "birth_year": 1996,
+      "education": { "qualification": "BA", "specialization": "Economics & Political Science" },
+      "occupation": { "job_profile": "Student", "organization": "IGNOU", "salary_package": null },
+      "personal_details": {
+        "dob": "1996-08-02",
+        "birth_time": "18:10",
+        "birthplace": "Chennai",
+        "height": "5 ft 3 in",
+        "complexion": "Fair"
+      },
+      "family_details": {
+        "father": { "name": "Arvind Kumar", "profession": "RBI Regional Director" },
+        "mother": { "name": "Nalini", "profession": "IRCTC DGM" },
+        "siblings": [
+          { "name": "Younger Sister", "relation": "Sister", "profession": "Student (TISS)", "marital_status": "Unmarried" }
+        ]
+      },
+      "gotra": ["Behanwal", "Chindaliya"],
+      "family_base": "Delhi based",
+      "residential_address": { "city": "New Delhi", "state": "Delhi", "country": "India" },
+      "preferences": "Well educated, liberal mindset",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P004",
+      "name": "Kanika",
+      "birth_year": 1995,
+      "education": { "qualification": "BA LLB", "specialization": "Law" },
+      "occupation": { "job_profile": "Judiciary Aspirant", "organization": "Rahul IAS", "salary_package": null },
+      "personal_details": {
+        "dob": "1995-04-02",
+        "birth_time": null,
+        "birthplace": "Delhi",
+        "height": "5 ft 3 in",
+        "complexion": "Wheatish"
+      },
+      "family_details": {
+        "father": { "name": "Not Disclosed", "profession": "Retd. CISF Inspector" },
+        "mother": { "name": "Asha Rani", "profession": "ASI, Delhi Police" },
+        "siblings": [
+          { "name": "Younger Brother", "relation": "Brother", "profession": "B.Tech CS", "marital_status": "Unmarried" }
+        ]
+      },
+      "gotra": ["Parcha", "Bahot", "Gehlot"],
+      "family_base": "Delhi NCR based",
+      "residential_address": { "city": "Faridabad", "state": "Haryana", "country": "India" },
+      "preferences": "Educated groom with good job",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P005",
+      "name": "Dr. Arjun Lohot",
+      "birth_year": 1994,
+      "education": { "qualification": "BDS", "specialization": "Dental Surgeon" },
+      "occupation": {
+        "job_profile": "Dentist",
+        "organization": "Private Practice",
+        "salary_package": "Well established"
+      },
+      "personal_details": {
+        "dob": "1994-09-26",
+        "birth_time": "23:30",
+        "birthplace": "Mumbai",
+        "height": "5 ft 10 in",
+        "complexion": "Wheatish"
+      },
+      "family_details": {
+        "father": { "name": "Dr. Amarpal Lohot", "profession": "MD Doctor" },
+        "mother": { "name": "Vandana Lohot", "profession": "Homemaker" },
+        "siblings": [
+          { "name": "Akshay Lohot", "relation": "Brother", "profession": "MBA", "marital_status": "Unmarried" },
+          { "name": "Abhay Lohot", "relation": "Brother", "profession": "MBBS Student", "marital_status": "Unmarried" }
+        ]
+      },
+      "gotra": ["Lohot", "Gohar", "Dhakolia"],
+      "family_base": "Mumbai based",
+      "residential_address": { "city": "Mumbai", "state": "Maharashtra", "country": "India" },
+      "preferences": "Educated & professional bride from good family",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P006",
+      "name": "Rohan Pintoo Janjot",
+      "birth_year": 1999,
+      "education": { "qualification": "Diploma", "specialization": "Nautical Science" },
+      "occupation": {
+        "job_profile": "Merchant Navy Junior Officer",
+        "organization": "Merchant Navy",
+        "salary_package": "As per govt norms"
+      },
+      "personal_details": {
+        "dob": "1999-04-28",
+        "birth_time": null,
+        "birthplace": "Mumbai",
+        "height": "5 ft 11 in",
+        "complexion": "Fair"
+      },
+      "family_details": {
+        "father": { "name": "Pintu Rampal Janjot", "profession": "Merchant Navy Engine Motor" },
+        "mother": { "name": "Hemu Janjot", "profession": "Homemaker" },
+        "siblings": [
+          { "name": "Only Sister", "relation": "Sister", "profession": null, "marital_status": "Unmarried" }
+        ]
+      },
+      "gotra": ["Janjot", "Kesle", "Chandaniya"],
+      "family_base": "Mumbai based",
+      "residential_address": { "city": "Dombivli", "state": "Maharashtra", "country": "India" },
+      "preferences": "Smart & educated bride from good family",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P007",
+      "name": "Rahul Kumar",
+      "birth_year": 1991,
+      "education": { "qualification": "MBA", "specialization": "HR" },
+      "occupation": {
+        "job_profile": "HR Professional",
+        "organization": "Private Company",
+        "salary_package": "Good Package"
+      },
+      "personal_details": {
+        "dob": "1991-08-05",
+        "birth_time": "08:55",
+        "birthplace": "Ranikhet",
+        "height": "5 ft 9 in",
+        "complexion": "Fair"
+      },
+      "family_details": {
+        "father": { "name": "Late Rakesh Kumar", "profession": null },
+        "mother": { "name": "Meenu", "profession": "Homemaker" },
+        "siblings": [
+          { "name": "Elder Brother", "relation": "Brother", "profession": "Working (USA)", "marital_status": "Unmarried" },
+          { "name": "Younger Brother", "relation": "Brother", "profession": "MBBS Student", "marital_status": "Unmarried" },
+          { "name": "Sister", "relation": "Sister", "profession": "HR", "marital_status": "Married" }
+        ]
+      },
+      "gotra": [],
+      "family_base": "Uttarakhand based",
+      "residential_address": { "city": "Haldwani", "state": "Uttarakhand", "country": "India" },
+      "preferences": "Educated bride from good family background",
+      "contact": { "whatsapp": "9999437667" }
+    },
+    {
+      "id": "P008",
+      "name": "Aman Lilothia",
+      "birth_year": 1997,
+      "education": {
+        "qualification": "B.Tech",
+        "specialization": "Computer Science"
+      },
+      "occupation": {
+        "job_profile": "Software Engineer",
+        "organization": "Working in Alberta, Canada",
+        "salary_package": "Canada based"
+      },
+      "personal_details": {
+        "dob": "1997-08-08",
+        "birth_time": "18:22",
+        "birthplace": "Delhi",
+        "height": "5 ft 10 in",
+        "complexion": "Fair"
+      },
+      "family_details": {
+        "father": { "name": "Ajayesh", "profession": "Retired Indian Railways" },
+        "mother": { "name": "Rani", "profession": "Salon Owner" },
+        "siblings": [
+          { "name": "Elder Brother", "relation": "Brother", "profession": "Advocate (Canada)", "marital_status": "Married" }
+        ]
+      },
+      "gotra": ["Chindaliya", "Pathre Chauhan"],
+      "family_base": "Canada based",
+      "residential_address": { "city": "Vikaspuri", "state": "Delhi", "country": "India" },
+      "preferences": "Canada based match preferred, educated & professional bride",
+      "contact": { "whatsapp": "9999437667" }
+    }
+  ]
+}
+

@@ -9,7 +9,7 @@ export default function Login() {
       <div className="md:w-[70%] max-w-6xl">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="p-8">
-            <CustomerPanel />
+              <CustomerPanel />
           </div>
         </div>
       </div>

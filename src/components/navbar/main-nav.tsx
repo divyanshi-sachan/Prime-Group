@@ -87,8 +87,9 @@ export default function MainNav() {
                src="/img/home.png"
                alt="Logo"
                priority
-               width={45}
-               height={45}
+               width={70}
+               height={70}
+               className="object-contain"
              />
               <span className="text-xl font-playfair-display font-bold text-gold-gradient">
               Prime Group

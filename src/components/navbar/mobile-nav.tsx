@@ -45,8 +45,8 @@ export default function MobileNav() {
               Home
             </Link>
             <Link href="/discover" className="block py-2 text-lg font-semibold" onClick={handleLinkClick}>
-              Discover
-            </Link>
+                Discover
+                  </Link>
             <Link href="/faqs" className="block py-2 text-lg font-semibold" onClick={handleLinkClick}>
               FAQ'S
             </Link>

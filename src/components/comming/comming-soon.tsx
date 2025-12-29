@@ -24,7 +24,7 @@ export default function CommingSoon() {
     alert("Thank you for subscribing! We'll notify you when we launch.");
     console.log("Subscription:", email);
     route.push('/');
-  }
+    }
   return (
     <div className="min-h-screen w-full bg-gradient-to-r from-pink-50 via-yellow-50 to-blue-50">
       <div className="container mx-auto px-4 py-8 flex flex-col min-h-screen">

@@ -91,7 +91,7 @@ export default function HeadSection() {
             </span>
           </div>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-playfair-display font-bold text-gold-gradient" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.15)' }}>
-            {heading.title}
+          {heading.title}
           </h2>
           <p className="text-lg sm:text-xl font-montserrat max-w-3xl mx-auto mt-4" style={{ color: 'var(--primary-blue)' }}>
             {heading.subtitle}
@@ -112,7 +112,7 @@ export default function HeadSection() {
                     style={{ border: `2px solid var(--accent-gold)` }}
                   >
                     <div className="relative aspect-[4/3] overflow-hidden">
-                      <Image
+                <Image
                         src={story.image}
                         alt={story.alt}
                         fill
@@ -123,15 +123,15 @@ export default function HeadSection() {
                         <p className="text-white font-montserrat font-semibold text-sm">
                           A Beautiful Union
                         </p>
-                      </div>
-                    </div>
+              </div>
+              </div>
                   </motion.div>
-                </CarouselItem>
+            </CarouselItem>
               ))}
-            </CarouselContent>
-          </Carousel>
-        </div>
+          </CarouselContent>
+        </Carousel>
       </div>
+    </div>
     </section>
   );
 }
