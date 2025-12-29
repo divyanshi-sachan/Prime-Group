@@ -7,119 +7,13 @@ import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 
-// Featured profiles data (from featured-profiles component)
-const featuredProfiles = [
-  {
-    id: "1",
-    name: "Priya Sharma",
-    birth_year: 1996,
-    education: {
-      qualification: "B.Tech",
-      specialization: "Computer Science"
-    },
-    occupation: {
-      job_profile: "Software Engineer",
-      organization: "Tech Corp",
-      salary_package: null
-    },
-    personal_details: {
-      dob: "1996-01-01",
-      birthplace: "Mumbai",
-      height: "5'4\"",
-      complexion: "Fair"
-    },
-    residential_address: {
-      city: "Mumbai",
-      state: "Maharashtra",
-      country: "India"
-    }
-  },
-  {
-    id: "2",
-    name: "Arjun Patel",
-    birth_year: 1994,
-    education: {
-      qualification: "MBA",
-      specialization: "Finance"
-    },
-    occupation: {
-      job_profile: "Business Consultant",
-      organization: "Consulting Firm",
-      salary_package: null
-    },
-    personal_details: {
-      dob: "1994-01-01",
-      birthplace: "Ahmedabad",
-      height: "5'10\"",
-      complexion: "Wheatish"
-    },
-    residential_address: {
-      city: "Ahmedabad",
-      state: "Gujarat",
-      country: "India"
-    }
-  },
-  {
-    id: "3",
-    name: "Kavya Reddy",
-    birth_year: 1998,
-    education: {
-      qualification: "MBBS",
-      specialization: "MD"
-    },
-    occupation: {
-      job_profile: "Doctor",
-      organization: "Hospital",
-      salary_package: null
-    },
-    personal_details: {
-      dob: "1998-01-01",
-      birthplace: "Hyderabad",
-      height: "5'5\"",
-      complexion: "Fair"
-    },
-    residential_address: {
-      city: "Hyderabad",
-      state: "Telangana",
-      country: "India"
-    }
-  },
-  {
-    id: "4",
-    name: "Rohan Singh",
-    birth_year: 1992,
-    education: {
-      qualification: "MBA",
-      specialization: "IIM"
-    },
-    occupation: {
-      job_profile: "Investment Banker",
-      organization: "Bank",
-      salary_package: null
-    },
-    personal_details: {
-      dob: "1992-01-01",
-      birthplace: "Delhi",
-      height: "5'11\"",
-      complexion: "Wheatish"
-    },
-    residential_address: {
-      city: "Delhi",
-      state: "NCR",
-      country: "India"
-    }
-  }
-];
-
 export default function FavoritesPage() {
   const { favorites } = useFavorites();
   const [favoriteProfiles, setFavoriteProfiles] = useState<any[]>([]);
 
   useEffect(() => {
-    // Combine both profile sources and filter favorites
-    const allProfiles = [...profilesData.profiles, ...featuredProfiles];
-    const favoritesArray = Array.from(favorites);
-    const filtered = allProfiles.filter(profile => 
+    // Filter favorites from profiles.json (featured profiles are now from same source)
+    const filtered = profilesData.profiles.filter(profile => 
       favorites.has(profile.id)
     );
     setFavoriteProfiles(filtered);

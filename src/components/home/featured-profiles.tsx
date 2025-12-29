@@ -5,63 +5,60 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Briefcase, GraduationCap } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
-
-interface Profile {
-  id: string;
-  name: string;
-  age: number;
-  location: string;
-  profession: string;
-  education: string;
-  image: string;
-}
-
-const profiles: Profile[] = [
-  {
-    id: "1",
-    name: "Priya Sharma",
-    age: 28,
-    location: "Mumbai, Maharashtra",
-    profession: "Software Engineer",
-    education: "B.Tech Computer Science",
-    image: "/profiles/image.png"
-  },
-  {
-    id: "2",
-    name: "Arjun Patel",
-    age: 30,
-    location: "Ahmedabad, Gujarat",
-    profession: "Business Consultant",
-    education: "MBA Finance",
-    image: "/profiles/image1.png"
-  },
-  {
-    id: "3",
-    name: "Kavya Reddy",
-    age: 26,
-    location: "Hyderabad, Telangana",
-    profession: "Doctor",
-    education: "MBBS, MD",
-    image: "/profiles/image3.png"
-  },
-  {
-    id: "4",
-    name: "Rohan Singh",
-    age: 32,
-    location: "Delhi, NCR",
-    profession: "Investment Banker",
-    education: "MBA IIM",
-    image: "/profiles/image4.png"
-  }
-];
+import profilesData from "@/data/profiles.json";
 
 export default function FeaturedProfiles() {
   const { isFavorite, toggleFavorite } = useFavorites();
+  
+  // Get first 4 profiles from JSON
+  const featuredProfiles = profilesData.profiles.slice(0, 4);
+  
+  // Profile images mapping (same as ProfileCard)
+  const profileImages = [
+    "/profiles/image.png",
+    "/profiles/image1.png",
+    "/profiles/image3.png",
+    "/profiles/image4.png",
+    "/profiles/boy.jpg",
+    "/profiles/boy2.jpg",
+    "/profiles/boy3.jpg",
+    "/profiles/boy5.jpg",
+  ];
+  
+  // Transform profiles to match component structure
+  const currentYear = new Date().getFullYear();
+  const profiles = featuredProfiles.map((profile) => {
+    const imageIndex = parseInt(profile.id.replace('P', '')) - 1;
+    return {
+      id: profile.id,
+      name: profile.name,
+      age: currentYear - profile.birth_year,
+      location: `${profile.residential_address.city}, ${profile.residential_address.state}`,
+      profession: profile.occupation.job_profile,
+      education: `${profile.education.qualification} - ${profile.education.specialization}`,
+      image: profileImages[imageIndex] || profileImages[0]
+    };
+  });
 
   return (
     <section className="relative pt-0 pb-20 px-4 sm:px-6 lg:px-8 shadow-lg" style={{ backgroundColor: 'var(--pure-white)' }}>
       {/* Mandala - Left corner */}
       <div className="absolute top-2 left-4 sm:top-4 sm:left-6 md:top-6 md:left-12 lg:top-8 lg:left-16 z-10 pointer-events-none" style={{ width: 'fit-content', height: 'fit-content' }}>
+        <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 lg:w-56 lg:h-56">
+          <Image
+            src="/img/mandala1.png"
+            alt="Mandala"
+            fill
+            className="object-contain"
+            style={{ 
+              animation: 'spin 20s linear infinite'
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Mandala - Right corner */}
+      <div className="absolute top-2 right-4 sm:top-4 sm:right-6 md:top-6 md:right-12 lg:top-8 lg:right-16 z-10 pointer-events-none" style={{ width: 'fit-content', height: 'fit-content' }}>
         <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 lg:w-56 lg:h-56">
           <Image
             src="/img/mandala1.png"

@@ -76,7 +76,7 @@ export default function HeadSection() {
   ];
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--pure-white)' }}>
+    <section className="pt-2 pb-20 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--pure-white)' }}>
       <div className="container mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
