@@ -135,7 +135,7 @@ export default function FeaturedProfiles() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 
                 {/* Age Badge */}
-                <div className="absolute bottom-4 left-4 px-3 py-1 rounded-full backdrop-blur-sm" style={{ backgroundColor: 'var(--accent-gold)' }}>
+                <div className="absolute bottom-4 left-4 px-3 py-1 rounded-full backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, var(--accent-gold) 0%, rgba(217, 170, 72, 0.8) 100%)' }}>
                   <span className="text-sm font-montserrat font-semibold text-black">{profile.age} Years</span>
                 </div>
               </div>
@@ -171,7 +171,7 @@ export default function FeaturedProfiles() {
 
                 {/* View Profile Button */}
                 <Link href={`/discover/${profile.id}`}>
-                  <button className="w-full mt-6 py-3 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg bg-gold-gradient text-black">
+                  <button className="w-full mt-6 py-3 rounded-lg font-montserrat font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg text-white" style={{ backgroundColor: 'var(--primary-blue)' }}>
                     View Profile
                   </button>
                 </Link>
