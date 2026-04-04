@@ -28,6 +28,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // If Supabase "Site URL" or redirect allowlist only lists the origin, email links use
+  // redirect_to=https://host (no path) and the user lands on /?code=... — exchange never runs.
+  // Forward the full query string to /auth/callback (PKCE `code`, optional `state`, etc.).
+  if (pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/" && request.nextUrl.searchParams.has("token_hash")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   // Page routes only: `/api/*` is not gated here — each handler enforces access (see @/lib/api-route-access).
   const isProtected = isProtectedMemberPath(pathname);
 
