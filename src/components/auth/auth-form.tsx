@@ -117,10 +117,19 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
         },
       });
       if (error) {
-        setMessage({ type: "error", text: error.message });
+        const code = "code" in error ? String((error as { code?: string }).code ?? "") : "";
+        const rateLimited =
+          code === "over_email_send_rate_limit" ||
+          (error.message ?? "").toLowerCase().includes("rate limit");
+        setMessage({
+          type: "error",
+          text: rateLimited
+            ? "We’ve temporarily limited sending verification emails — please try again in about an hour. If you’re testing, wait before signing up again; for production, add custom SMTP in Supabase (Authentication) for higher limits."
+            : error.message,
+        });
         return;
       }
-      
+
       if (signUpData?.user?.identities?.length === 0) {
         setMessage({ type: "error", text: "An account with this email already exists. Please log in." });
         return;
@@ -220,7 +229,11 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
                     }
                     setMessage({
                       type: "error",
-                      text: data.error || "Could not resend the email. Try again in a moment.",
+                      text:
+                        data.error ||
+                        (res.status === 429
+                          ? "We’ve limited how often we can resend. Please try again in about 1 hour."
+                          : "Could not resend the email. Try again in a moment."),
                     });
                     return;
                   }

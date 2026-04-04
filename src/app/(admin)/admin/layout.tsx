@@ -28,34 +28,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const check = async () => {
-      const supabase = createAdminBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const meRes = await fetch("/api/admin/me", { credentials: "include" });
+      const me = await meRes.json().catch(() => ({}));
+
       if (pathname === "/admin/login") {
-        if (user) {
-          const res = await fetch("/api/admin/me", { credentials: "include" });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && data.isAdmin) {
-            router.replace("/admin");
-            return;
-          }
+        if (meRes.ok && me.isAdmin === true) {
+          router.replace("/admin");
+          return;
         }
         setLoading(false);
         return;
       }
-      if (!user) {
+
+      if (meRes.ok && me.isAdmin === true) {
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createAdminBrowserClient();
+      if (meRes.status === 401) {
+        await supabase.auth.signOut().catch(() => {});
         router.replace("/admin/login");
         setLoading(false);
         return;
       }
-      const res = await fetch("/api/admin/me", { credentials: "include" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.isAdmin) {
-        await supabase.auth.signOut();
-        router.replace("/admin/login");
-        setLoading(false);
-        return;
-      }
-      setIsAdmin(true);
+
+      await supabase.auth.signOut().catch(() => {});
+      router.replace("/admin/login");
       setLoading(false);
     };
     check();

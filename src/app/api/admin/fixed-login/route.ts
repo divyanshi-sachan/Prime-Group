@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import type { CookieOptions } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { createAdminServerClient } from "@/lib/supabase/server-admin";
+import { ADMIN_AUTH_STORAGE_KEY } from "@/lib/supabase/admin-session";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
 
 /** Access: **public_secret** — env credentials only; see `@/lib/api-route-access`. */
@@ -12,7 +14,68 @@ function safeEqual(a: string, b: string) {
   return crypto.timingSafeEqual(aBuf, bBuf);
 }
 
-export async function POST(request: Request) {
+/**
+ * Route handlers must attach Supabase auth cookies to the returned `NextResponse`.
+ * `cookies().set()` from `createAdminServerClient()` does not reliably merge into `NextResponse.json()`.
+ */
+function createRouteHandlerAdminClient(
+  request: NextRequest,
+  jar: Map<string, { value: string; options?: CookieOptions }>
+) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookieOptions: { name: ADMIN_AUTH_STORAGE_KEY },
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            jar.set(name, { value, options });
+          });
+        },
+      },
+    }
+  );
+}
+
+function jsonWithSessionCookies(
+  body: object,
+  jar: Map<string, { value: string; options?: CookieOptions }>
+) {
+  const res = NextResponse.json(body);
+  jar.forEach(({ value, options }, name) => {
+    res.cookies.set(name, value, options);
+  });
+  return res;
+}
+
+/** Ensures `public.users` has a row with admin role (repair path / users created outside signup trigger). */
+async function ensureAdminUserRow(userId: string, email: string): Promise<void> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  try {
+    const service = createServiceRoleClient();
+    const { error } = await service.from("users").upsert(
+      {
+        id: userId,
+        email,
+        role: "super_admin",
+        status: "active",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+    if (error) {
+      console.error("[fixed-login] ensureAdminUserRow:", error.message);
+    }
+  } catch (e) {
+    console.error("[fixed-login] ensureAdminUserRow:", e);
+  }
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
       email?: string;
@@ -31,8 +94,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate the submitted credentials against env (do not expose env to client).
-    // We validate both email and password to allow sharing a single fixed credential set with admins.
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
@@ -46,15 +107,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createAdminServerClient();
+    const jar = new Map<string, { value: string; options?: CookieOptions }>();
+    const supabase = createRouteHandlerAdminClient(request, jar);
     const { data, error } = await supabase.auth.signInWithPassword({
       email: adminEmail,
       password: adminPassword,
     });
 
     if (error || !data.user) {
-      // Auto-heal setup: ensure the fixed admin user exists and is an admin.
-      // This avoids "invalid login credentials" when env values are set but the auth user wasn't created yet.
       const isInvalidCreds =
         (error?.message || "").toLowerCase().includes("invalid login credentials");
       if (!isInvalidCreds) {
@@ -66,7 +126,6 @@ export async function POST(request: Request) {
 
       const service = createServiceRoleClient();
 
-      // Try create; if already exists, reset password.
       const created = await service.auth.admin
         .createUser({
           email: adminEmail,
@@ -94,13 +153,6 @@ export async function POST(request: Request) {
         }
       }
 
-      if (userId) {
-        await service
-          .from("users")
-          .update({ role: "super_admin", updated_at: new Date().toISOString() })
-          .eq("id", userId);
-      }
-
       const retry = await supabase.auth.signInWithPassword({
         email: adminEmail,
         password: adminPassword,
@@ -113,10 +165,15 @@ export async function POST(request: Request) {
         );
       }
 
-      return NextResponse.json({ success: true, repaired: true });
+      await ensureAdminUserRow(
+        retry.data.user.id,
+        retry.data.user.email ?? adminEmail
+      );
+      return jsonWithSessionCookies({ success: true, repaired: true }, jar);
     }
 
-    return NextResponse.json({ success: true });
+    await ensureAdminUserRow(data.user.id, data.user.email ?? adminEmail);
+    return jsonWithSessionCookies({ success: true }, jar);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Server error" },
@@ -124,4 +181,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

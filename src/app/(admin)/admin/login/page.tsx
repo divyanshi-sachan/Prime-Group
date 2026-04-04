@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Mail, Shield } from "lucide-react";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -38,8 +36,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      router.replace("/admin");
-      router.refresh();
+      window.location.assign("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to login");
     } finally {

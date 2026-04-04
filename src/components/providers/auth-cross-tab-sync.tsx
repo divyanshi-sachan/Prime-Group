@@ -15,6 +15,8 @@ const SKIP_HARD_NAV_PREFIXES = [
   "/reset-password",
   "/auth/",
   "/hi",
+  /** Admin login intentionally signs out the member session; do not send users to `/`. */
+  "/admin",
 ] as const;
 
 export function AuthCrossTabSync() {

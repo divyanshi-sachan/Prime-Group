@@ -81,11 +81,17 @@ export async function POST(request: Request) {
 
   const nextOk = emailNextAllowedAt.get(emailNorm) ?? 0;
   if (now < nextOk) {
+    const sec = retryAfterSec(emailNorm);
+    const waitPhrase =
+      sec >= 3600 ? "about 1 hour" : sec >= 60 ? `about ${Math.ceil(sec / 60)} minutes` : `${sec} seconds`;
     return NextResponse.json(
-      { error: "Please wait before requesting another email.", code: "rate_limited" },
+      {
+        error: `We’ve limited how often we can resend to this address. Please try again in ${waitPhrase}.`,
+        code: "rate_limited",
+      },
       {
         status: 429,
-        headers: { "Retry-After": String(retryAfterSec(emailNorm)) },
+        headers: { "Retry-After": String(sec) },
       }
     );
   }
@@ -94,7 +100,10 @@ export async function POST(request: Request) {
   if (now - lastReq < MIN_REQUEST_GAP_MS) {
     const waitSec = Math.max(1, Math.ceil((MIN_REQUEST_GAP_MS - (now - lastReq)) / 1000));
     return NextResponse.json(
-      { error: "Please wait before trying again.", code: "rate_limited" },
+      {
+        error: `Please wait ${waitSec} seconds before requesting another email.`,
+        code: "rate_limited",
+      },
       { status: 429, headers: { "Retry-After": String(waitSec) } }
     );
   }
@@ -102,7 +111,11 @@ export async function POST(request: Request) {
 
   if (countIpInWindow(ip) >= IP_MAX_RESENDS_PER_WINDOW) {
     return NextResponse.json(
-      { error: "Too many requests. Try again later.", code: "rate_limited_ip" },
+      {
+        error:
+          "We’ve temporarily limited verification emails from your network. Please try again in about 1 hour.",
+        code: "rate_limited_ip",
+      },
       { status: 429, headers: { "Retry-After": "3600" } }
     );
   }
