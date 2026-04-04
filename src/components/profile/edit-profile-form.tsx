@@ -19,11 +19,13 @@ import {
 } from "@/components/ui/select";
 import { ProfilePhotoManager } from "./profile-photo-manager";
 import type { ProfileRecord } from "./profile-view";
+import { dateOfBirthSchema, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
 
-const editSchema = z.object({
+const editSchema = z
+  .object({
   full_name: z.string().min(2),
   gender: z.enum(["male", "female", "other"]),
-  date_of_birth: z.string().min(1),
+  date_of_birth: dateOfBirthSchema,
   marital_status: z.string().optional(),
   height_cm: z.coerce.number().min(0).max(250).optional(),
   religion: z.string().optional(),
@@ -49,7 +51,16 @@ const editSchema = z.object({
   age_min: z.coerce.number().min(18).max(100).optional(),
   age_max: z.coerce.number().min(18).max(100).optional(),
   additional_notes: z.string().max(500).optional(),
-});
+})
+  .refine(
+    (d) => {
+      const min = d.age_min;
+      const max = d.age_max;
+      if (min == null || max == null || Number.isNaN(min) || Number.isNaN(max)) return true;
+      return min <= max;
+    },
+    { message: "Minimum partner age cannot be greater than maximum", path: ["age_max"] }
+  );
 
 type EditFormData = z.infer<typeof editSchema>;
 
@@ -225,6 +236,9 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
           <div className="space-y-2">
             <Label htmlFor="date_of_birth">Date of birth *</Label>
             <Input id="date_of_birth" type="date" {...form.register("date_of_birth")} />
+            <p className="text-xs text-gray-600 font-general">
+              Age must be between {MIN_PROFILE_AGE} and {MAX_PROFILE_AGE} years.
+            </p>
             {form.formState.errors.date_of_birth && (
               <p className="text-sm text-red-500">{form.formState.errors.date_of_birth.message}</p>
             )}

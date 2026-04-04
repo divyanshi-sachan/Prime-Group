@@ -14,22 +14,27 @@ import { cn } from "@/lib/utils";
 import { getPostLoginRedirect } from "@/lib/post-login-redirect";
 import { getSiteUrl } from "@/lib/site";
 import type { AuthFormData } from "../types/auth";
+import { PASSWORD_REQUIREMENT_HINT, signupPasswordSchema } from "@/lib/auth/password-policy";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Enter your password"),
   rememberMe: z.boolean().optional(),
 });
 
-const signUpSchema = signInSchema.extend({
-  confirmPassword: z.string(),
-  acceptTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the Terms and Privacy Policy" }),
-  }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+const signUpSchema = signInSchema
+  .omit({ password: true })
+  .extend({
+    password: signupPasswordSchema,
+    confirmPassword: z.string(),
+    acceptTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must accept the Terms and Privacy Policy" }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
@@ -290,6 +295,9 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
           register={register as any}
           error={errors.password?.message as string | undefined}
         />
+        {isSignUp && (
+          <p className="text-xs font-general text-gray-600 -mt-2 leading-relaxed">{PASSWORD_REQUIREMENT_HINT}</p>
+        )}
 
         {isSignUp && (
           <>

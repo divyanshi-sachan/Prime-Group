@@ -11,10 +11,11 @@ import { updatePasswordErrorUserMessage } from "@/lib/auth/auth-callback-errors"
 import { createClient } from "@/lib/supabase/client";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { Spinner } from "@/components/ui/spinner";
+import { PASSWORD_REQUIREMENT_HINT, signupPasswordSchema } from "@/lib/auth/password-policy";
 
 const schema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: signupPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -157,6 +158,7 @@ function ResetPasswordForm() {
             register={register}
             error={errors.password?.message}
           />
+          <p className="text-xs font-general text-gray-600 -mt-2 leading-relaxed">{PASSWORD_REQUIREMENT_HINT}</p>
           <AuthInput
             type="password"
             name="confirmPassword"

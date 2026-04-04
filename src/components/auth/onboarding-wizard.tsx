@@ -42,11 +42,12 @@ import {
   clearProfilePhotoFiles,
 } from "./profile-photo-upload";
 import { OnboardingChecklist } from "./onboarding-checklist";
+import { dateOfBirthSchema, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
 
 // Step 0: name, DOB, time, birthplace, gender, marital
 const step0Schema = z.object({
   full_name: z.string().min(2, "Name is required"),
-  date_of_birth: z.string().min(1, "Date of birth is required"),
+  date_of_birth: dateOfBirthSchema,
   gender: z.enum(["male", "female", "other"]),
   birth_time: z.string().optional(),
   birthplace: z.string().optional(),
@@ -86,11 +87,21 @@ const step4ContactSchema = z.object({
   willing_to_relocate: z.string().optional(),
 });
 // Step 5: partner preference = what you're looking for (age + notes)
-const step5PreferenceSchema = z.object({
-  age_min: z.coerce.number().min(18).max(100).optional(),
-  age_max: z.coerce.number().min(18).max(100).optional(),
-  additional_notes: z.string().max(500).optional(),
-});
+const step5PreferenceSchema = z
+  .object({
+    age_min: z.coerce.number().min(18).max(100).optional(),
+    age_max: z.coerce.number().min(18).max(100).optional(),
+    additional_notes: z.string().max(500).optional(),
+  })
+  .refine(
+    (d) => {
+      const min = d.age_min;
+      const max = d.age_max;
+      if (min == null || max == null || Number.isNaN(min) || Number.isNaN(max)) return true;
+      return min <= max;
+    },
+    { message: "Minimum partner age cannot be greater than maximum", path: ["age_max"] }
+  );
 
 type Step0Data = z.infer<typeof step0Schema>;
 type Step1Data = z.infer<typeof step1Schema>;
@@ -623,6 +634,9 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
                 <div className="space-y-2">
                   <Label htmlFor="date_of_birth" className="font-medium" style={{ color: "var(--primary-blue)" }}>Date of birth *</Label>
                   <Input id="date_of_birth" type="date" {...form.register("date_of_birth")} className={cn("w-full", inputClass)} />
+                  <p className="text-xs text-gray-600 font-general leading-relaxed">
+                    You must be between {MIN_PROFILE_AGE} and {MAX_PROFILE_AGE} years old.
+                  </p>
                   {err("date_of_birth") && <p className="text-sm text-red-500">{err("date_of_birth")}</p>}
                 </div>
                 <div className="space-y-2">
