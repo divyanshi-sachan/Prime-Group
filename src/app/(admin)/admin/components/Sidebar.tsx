@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { name: "Dashboard", href: "/admin", icon: BarChart3, description: "Overview & stats" },
-  { name: "Auth users", href: "/admin/auth-users", icon: KeyRound, description: "All Supabase Auth accounts" },
+  { name: "Auth users", href: "/admin/auth-users", icon: KeyRound, description: "Auth accounts" },
   { name: "Profiles", href: "/admin/profiles", icon: Users, description: "Manage profiles" },
   { name: "Blogs", href: "/admin/blogs", icon: FileText, description: "Create & edit posts" },
   { name: "FAQs", href: "/admin/faqs", icon: HelpCircle, description: "Manage FAQs" },

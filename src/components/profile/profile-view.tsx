@@ -44,6 +44,7 @@ export interface PartnerPreferences {
 
 export interface ProfileRecord {
   id: string;
+  user_id?: string;
   full_name: string;
   gender: string;
   date_of_birth: string;
@@ -89,6 +90,9 @@ export interface ProfileRecord {
   email?: string | null;
   willing_to_relocate?: string | null;
   is_visible?: boolean | null;
+  admin_notes?: string | null;
+  rejection_reason?: string | null;
+  approved_at?: string | null;
   [key: string]: unknown;
 }
 

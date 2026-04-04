@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { IndianRupee, Pencil, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
+import { cn } from "@/lib/utils";
 
 interface Plan {
   id: string;
@@ -30,41 +30,43 @@ interface Plan {
   slug: string;
   description: string | null;
   price_inr: number;
-  price_usd: number | null;
   duration_days: number | null;
   credits: number | null;
   is_active: boolean;
   display_order: number | null;
 }
 
+type DurationMode = "lifetime" | "limited";
+
 export default function AdminPricingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Plan | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
     description: "",
     price_inr: 0,
-    price_usd: 0,
+    duration_mode: "limited" as DurationMode,
     duration_days: 30,
     credits: 10,
     is_active: true,
   });
 
   const fetchPlans = async () => {
-    const supabase = createAdminBrowserClient();
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("plans")
-        .select("*")
-        .order("display_order", { ascending: true });
-      if (error) throw error;
-      setPlans((data as Plan[]) ?? []);
-    } catch {
+      const res = await fetch("/api/admin/plans", { credentials: "include" });
+      const data = (await res.json().catch(() => ({}))) as { plans?: Plan[]; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error ?? `Failed to load plans (${res.status})`);
+      }
+      setPlans(data.plans ?? []);
+    } catch (e) {
       setPlans([]);
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -75,14 +77,17 @@ export default function AdminPricingPage() {
   }, []);
 
   const openEdit = (plan: Plan) => {
+    setSaveError(null);
     setEditing(plan);
+    const days = plan.duration_days;
+    const isLifetime = days == null || days <= 0;
     setForm({
       name: plan.name,
       slug: plan.slug,
       description: plan.description ?? "",
       price_inr: plan.price_inr ?? 0,
-      price_usd: plan.price_usd ?? 0,
-      duration_days: plan.duration_days ?? 30,
+      duration_mode: isLifetime ? "lifetime" : "limited",
+      duration_days: !isLifetime && days != null ? days : 30,
       credits: plan.credits ?? 0,
       is_active: plan.is_active,
     });
@@ -90,30 +95,48 @@ export default function AdminPricingPage() {
 
   const savePlan = async () => {
     if (!editing) return;
-    const supabase = createAdminBrowserClient();
     setSaving(true);
+    setSaveError(null);
     try {
-      const { error } = await supabase
-        .from("plans")
-        .update({
-          name: form.name,
-          description: form.description || null,
-          price_inr: form.price_inr,
-          price_usd: form.price_usd || null,
-          duration_days: form.duration_days || null,
-          credits: form.credits ?? null,
+      const priceInr = Math.max(0, Math.round(Number(form.price_inr)) || 0);
+      const creditsVal = Math.max(0, Math.round(Number(form.credits)) || 0);
+      const durationDays =
+        form.duration_mode === "lifetime"
+          ? null
+          : Math.max(1, Math.round(Number(form.duration_days)) || 1);
+
+      const res = await fetch(`/api/admin/plans/${editing.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          price_inr: priceInr,
+          price_usd: null,
+          duration_days: durationDays,
+          credits: creditsVal,
           is_active: form.is_active,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editing.id);
-      if (error) throw error;
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; plan?: Plan };
+      if (!res.ok) {
+        setSaveError(data.error ?? `Save failed (${res.status})`);
+        return;
+      }
       setEditing(null);
-      fetchPlans();
+      await fetchPlans();
     } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed");
       console.error(e);
     } finally {
       setSaving(false);
     }
+  };
+
+  const formatDuration = (days: number | null) => {
+    if (days == null || days <= 0) return "Lifetime";
+    return `${days} days`;
   };
 
   const cardStyle = { borderColor: "rgba(212, 175, 55, 0.25)", backgroundColor: "white" };
@@ -127,7 +150,7 @@ export default function AdminPricingPage() {
             Pricing & Plans
           </h1>
           <p className="font-general text-sm mt-1 text-gray-600">
-            Edit plan prices and visibility.
+            All amounts are in Indian Rupees (₹). Choose a fixed term in days or lifetime access per plan.
           </p>
         </div>
         <Button
@@ -155,8 +178,7 @@ export default function AdminPricingPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-general">Name</TableHead>
                   <TableHead className="font-general">Price (₹)</TableHead>
-                  <TableHead className="font-general">Price ($)</TableHead>
-                  <TableHead className="font-general">Duration</TableHead>
+                  <TableHead className="font-general">Validity</TableHead>
                   <TableHead className="font-general">Credits</TableHead>
                   <TableHead className="font-general">Active</TableHead>
                   <TableHead className="font-general w-[100px]">Action</TableHead>
@@ -165,7 +187,7 @@ export default function AdminPricingPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12">
+                    <TableCell colSpan={6} className="py-12">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Spinner size="md" label="Loading plans…" />
                       </div>
@@ -173,7 +195,7 @@ export default function AdminPricingPage() {
                   </TableRow>
                 ) : plans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500 font-general">
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500 font-general">
                       No plans. Run the plans migration (20250212000000_plans_and_payments.sql) to seed default plans.
                     </TableCell>
                   </TableRow>
@@ -184,8 +206,7 @@ export default function AdminPricingPage() {
                         {p.name}
                       </TableCell>
                       <TableCell>₹{p.price_inr}</TableCell>
-                      <TableCell>{p.price_usd != null ? `$${p.price_usd}` : "—"}</TableCell>
-                      <TableCell>{p.duration_days != null ? `${p.duration_days} days` : "—"}</TableCell>
+                      <TableCell>{formatDuration(p.duration_days)}</TableCell>
                       <TableCell>{p.credits ?? "—"}</TableCell>
                       <TableCell>
                         <span className={p.is_active ? "text-green-600" : "text-gray-400"}>
@@ -207,13 +228,26 @@ export default function AdminPricingPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+      <Dialog
+        open={!!editing}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditing(null);
+            setSaveError(null);
+          }
+        }}
+      >
         <DialogContent className="rounded-xl max-w-md">
           <DialogHeader>
             <DialogTitle className="font-playfair-display" style={{ color: "var(--primary-blue)" }}>
               Edit plan
             </DialogTitle>
           </DialogHeader>
+          {saveError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 font-general" role="alert">
+              {saveError}
+            </div>
+          ) : null}
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label className="font-general">Name</Label>
@@ -223,49 +257,68 @@ export default function AdminPricingPage() {
                 className="rounded-lg"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label className="font-general">Price (₹)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.price_inr}
-                  onChange={(e) => setForm((f) => ({ ...f, price_inr: Number(e.target.value) || 0 }))}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label className="font-general">Price ($)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.price_usd}
-                  onChange={(e) => setForm((f) => ({ ...f, price_usd: Number(e.target.value) || 0 }))}
-                  className="rounded-lg"
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label className="font-general">Price (₹)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.price_inr}
+                onChange={(e) => setForm((f) => ({ ...f, price_inr: Number(e.target.value) || 0 }))}
+                className="rounded-lg"
+              />
+              <p className="text-xs text-muted-foreground font-general">India only — no other currency is stored.</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label className="font-general">Duration (days)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.duration_days}
-                  onChange={(e) => setForm((f) => ({ ...f, duration_days: Number(e.target.value) || 0 }))}
-                  className="rounded-lg"
+
+            <fieldset className="grid gap-3 rounded-lg border border-[var(--primary-blue)]/15 p-3">
+              <legend className="px-1 text-sm font-medium font-general" style={{ color: "var(--primary-blue)" }}>
+                Plan validity
+              </legend>
+              <label className="flex cursor-pointer items-start gap-2 font-general text-sm">
+                <input
+                  type="radio"
+                  name="duration_mode"
+                  className="mt-1"
+                  checked={form.duration_mode === "lifetime"}
+                  onChange={() => setForm((f) => ({ ...f, duration_mode: "lifetime" }))}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label className="font-general">Credits</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.credits}
-                  onChange={(e) => setForm((f) => ({ ...f, credits: Number(e.target.value) || 0 }))}
-                  className="rounded-lg"
+                <span>
+                  <span className="font-medium">Lifetime</span>
+                  <span className="block text-muted-foreground text-xs">No expiry — access does not end after a fixed number of days.</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2 font-general text-sm">
+                <input
+                  type="radio"
+                  name="duration_mode"
+                  className="mt-1"
+                  checked={form.duration_mode === "limited"}
+                  onChange={() => setForm((f) => ({ ...f, duration_mode: "limited" }))}
                 />
-              </div>
+                <span className="flex-1 min-w-0">
+                  <span className="font-medium">Limited period</span>
+                  <span className="block text-muted-foreground text-xs mb-2">Ends after this many days from purchase (or your product rules).</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    disabled={form.duration_mode !== "limited"}
+                    value={form.duration_days}
+                    onChange={(e) => setForm((f) => ({ ...f, duration_days: Math.max(1, Number(e.target.value) || 1) }))}
+                    className={cn("rounded-lg max-w-[140px]", form.duration_mode !== "limited" && "opacity-50")}
+                  />
+                  <span className="text-xs text-muted-foreground ml-2">days</span>
+                </span>
+              </label>
+            </fieldset>
+
+            <div className="grid gap-2">
+              <Label className="font-general">Credits</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.credits}
+                onChange={(e) => setForm((f) => ({ ...f, credits: Number(e.target.value) || 0 }))}
+                className="rounded-lg"
+              />
             </div>
             <div className="flex items-center gap-2">
               <input

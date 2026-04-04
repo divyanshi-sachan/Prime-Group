@@ -4,12 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -19,50 +17,21 @@ import {
 } from "@/components/ui/select";
 import { ProfilePhotoManager } from "./profile-photo-manager";
 import type { ProfileRecord } from "./profile-view";
-import { dateOfBirthSchema, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
+import { MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
+import {
+  adminEditProfileSchema,
+  type AdminEditProfileFormData,
+} from "@/lib/profile/admin-edit-profile-schema";
 
-const editSchema = z
-  .object({
-  full_name: z.string().min(2),
-  gender: z.enum(["male", "female", "other"]),
-  date_of_birth: dateOfBirthSchema,
-  marital_status: z.string().optional(),
-  height_cm: z.coerce.number().min(0).max(250).optional(),
-  religion: z.string().optional(),
-  mother_tongue: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  city: z.string().optional(),
-  willing_to_relocate: z.string().optional(),
-  highest_education: z.string().optional(),
-  college_university: z.string().optional(),
-  field_of_study: z.string().optional(),
-  occupation: z.string().optional(),
-  organization: z.string().optional(),
-  about_me: z.string().max(2000).optional(),
-  father_name: z.string().optional(),
-  father_occupation: z.string().optional(),
-  mother_name: z.string().optional(),
-  mother_occupation: z.string().optional(),
-  siblings_count: z.coerce.number().min(0).optional(),
-  family_type: z.string().optional(),
-  family_values: z.string().optional(),
-  family_status: z.string().optional(),
-  age_min: z.coerce.number().min(18).max(100).optional(),
-  age_max: z.coerce.number().min(18).max(100).optional(),
-  additional_notes: z.string().max(500).optional(),
-})
-  .refine(
-    (d) => {
-      const min = d.age_min;
-      const max = d.age_max;
-      if (min == null || max == null || Number.isNaN(min) || Number.isNaN(max)) return true;
-      return min <= max;
-    },
-    { message: "Minimum partner age cannot be greater than maximum", path: ["age_max"] }
-  );
+type AdminEditFormData = AdminEditProfileFormData;
 
-type EditFormData = z.infer<typeof editSchema>;
+function formatSaveError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return "Failed to save";
+}
 
 interface EditProfileFormProps {
   profile: ProfileRecord;
@@ -70,56 +39,106 @@ interface EditProfileFormProps {
   preferences: { age_min: number | null; age_max: number | null; additional_notes: string | null } | null;
   userId: string;
   onClose?: () => void;
+  /** Admin panel: use admin Supabase session + extra profile fields. Requires DB policies (see migration admin partner_prefs_and_photos). */
+  variant?: "user" | "admin";
+  /** After successful save (e.g. refetch profile in parent). */
+  onSaved?: () => void;
 }
 
-export function EditProfileForm({ profile, photos, preferences, userId, onClose }: EditProfileFormProps) {
+function buildDefaultValues(
+  profile: ProfileRecord,
+  preferences: EditProfileFormProps["preferences"]
+): AdminEditFormData {
+  const base: AdminEditFormData = {
+    full_name: profile.full_name ?? "",
+    gender: (profile.gender as "male" | "female" | "other") ?? "male",
+    date_of_birth: profile.date_of_birth?.slice(0, 10) ?? "",
+    marital_status: profile.marital_status ?? "",
+    height_cm: profile.height_cm ?? undefined,
+    religion: profile.religion ?? "",
+    mother_tongue: profile.mother_tongue ?? "",
+    country: profile.country ?? "",
+    state: profile.state ?? "",
+    city: profile.city ?? "",
+    willing_to_relocate: profile.willing_to_relocate ?? "",
+    highest_education: profile.highest_education ?? "",
+    college_university: profile.college_university ?? "",
+    field_of_study: profile.field_of_study ?? "",
+    occupation: profile.occupation ?? "",
+    organization: profile.organization ?? "",
+    about_me: profile.about_me ?? "",
+    father_name: profile.father_name ?? "",
+    father_occupation: profile.father_occupation ?? "",
+    mother_name: profile.mother_name ?? "",
+    mother_occupation: profile.mother_occupation ?? "",
+    siblings_count: profile.siblings_count ?? undefined,
+    family_type: profile.family_type ?? "",
+    family_values: profile.family_values ?? "",
+    family_status: profile.family_status ?? "",
+    age_min: preferences?.age_min ?? undefined,
+    age_max: preferences?.age_max ?? undefined,
+    additional_notes: preferences?.additional_notes ?? "",
+    profile_status: (profile.profile_status as AdminEditFormData["profile_status"]) ?? "pending",
+    is_visible: profile.is_visible ?? true,
+    admin_notes: profile.admin_notes ?? "",
+    contact_number: profile.contact_number ?? "",
+    contact_address: profile.contact_address ?? "",
+    verification_status: profile.verification_status ?? "unverified",
+    gotra: profile.gotra ?? "",
+    birthplace: profile.birthplace ?? "",
+    birth_time: profile.birth_time ?? "",
+    complexion: profile.complexion ?? "",
+    school: profile.school ?? "",
+    show_education: profile.show_education ?? true,
+    show_occupation: profile.show_occupation ?? true,
+    show_family: profile.show_family ?? true,
+    show_location: profile.show_location ?? true,
+  };
+  return base;
+}
+
+export function EditProfileForm({
+  profile,
+  photos,
+  preferences,
+  userId,
+  onClose,
+  variant = "user",
+  onSaved,
+}: EditProfileFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photoCount, setPhotoCount] = useState(photos.length);
-  const handlePhotoUpdate = (newCount: number) => setPhotoCount(newCount);
+  const handlePhotoUpdate = (_newCount: number) => {};
+  const isAdmin = variant === "admin";
 
-  const form = useForm<EditFormData>({
-    resolver: zodResolver(editSchema),
-    defaultValues: {
-      full_name: profile.full_name ?? "",
-      gender: (profile.gender as "male" | "female" | "other") ?? "male",
-      date_of_birth: profile.date_of_birth?.slice(0, 10) ?? "",
-      marital_status: profile.marital_status ?? "",
-      height_cm: profile.height_cm ?? undefined,
-      religion: profile.religion ?? "",
-      mother_tongue: profile.mother_tongue ?? "",
-      country: profile.country ?? "",
-      state: profile.state ?? "",
-      city: profile.city ?? "",
-      willing_to_relocate: profile.willing_to_relocate ?? "",
-      highest_education: profile.highest_education ?? "",
-      college_university: profile.college_university ?? "",
-      field_of_study: profile.field_of_study ?? "",
-      occupation: profile.occupation ?? "",
-      organization: profile.organization ?? "",
-      about_me: profile.about_me ?? "",
-      father_name: profile.father_name ?? "",
-      father_occupation: profile.father_occupation ?? "",
-      mother_name: profile.mother_name ?? "",
-      mother_occupation: profile.mother_occupation ?? "",
-      siblings_count: profile.siblings_count ?? undefined,
-      family_type: profile.family_type ?? "",
-      family_values: profile.family_values ?? "",
-      family_status: profile.family_status ?? "",
-      age_min: preferences?.age_min ?? undefined,
-      age_max: preferences?.age_max ?? undefined,
-      additional_notes: preferences?.additional_notes ?? "",
-    },
+  const form = useForm<AdminEditFormData>({
+    resolver: zodResolver(adminEditProfileSchema),
+    defaultValues: buildDefaultValues(profile, preferences),
   });
 
-
-  const onSubmit = async (data: EditFormData) => {
+  const onSubmit = async (data: AdminEditFormData) => {
     setError(null);
     setSaving(true);
     const supabase = createClient();
     try {
-      const payload = {
+      if (isAdmin) {
+        const res = await fetch(`/api/admin/profiles/${profile.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(data),
+        });
+        const json = (await res.json().catch(() => ({}))) as { error?: string; details?: unknown };
+        if (!res.ok) {
+          throw new Error(json.error ?? `Save failed (${res.status})`);
+        }
+        onSaved?.();
+        if (onClose) onClose();
+        return;
+      }
+
+      const payload: Record<string, unknown> = {
         full_name: data.full_name,
         gender: data.gender,
         date_of_birth: data.date_of_birth,
@@ -147,6 +166,7 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
         family_status: data.family_status || null,
         updated_at: new Date().toISOString(),
       };
+
       const { error: e } = await supabase.from("profiles").update(payload).eq("id", profile.id).eq("user_id", userId);
       if (e) throw e;
 
@@ -156,21 +176,29 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
         additional_notes: data.additional_notes || null,
         updated_at: new Date().toISOString(),
       };
-      const { data: existingPref } = await supabase.from("partner_preferences").select("id").eq("profile_id", profile.id).single();
+      const { data: existingPref } = await supabase
+        .from("partner_preferences")
+        .select("id")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
       if (existingPref) {
-        await supabase.from("partner_preferences").update(prefPayload).eq("id", existingPref.id);
+        const { error: pe } = await supabase.from("partner_preferences").update(prefPayload).eq("id", existingPref.id);
+        if (pe) throw pe;
       } else {
-        await supabase.from("partner_preferences").insert({
+        const { error: ie } = await supabase.from("partner_preferences").insert({
           profile_id: profile.id,
           user_id: userId,
           ...prefPayload,
         });
+        if (ie) throw ie;
       }
+
       router.refresh();
+      onSaved?.();
       if (onClose) onClose();
       else router.push("/profile");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(formatSaveError(err));
     } finally {
       setSaving(false);
     }
@@ -184,14 +212,24 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b pb-6 gap-4" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
         <div>
           <h1 className="font-playfair-display text-3xl font-bold" style={{ color: "var(--primary-blue)" }}>
-            Edit Profile
+            {isAdmin ? "Edit member profile" : "Edit Profile"}
           </h1>
           <p className="font-general text-sm mt-2 opacity-80" style={{ color: "var(--primary-blue)" }}>
-            Update your details, photos, and preferences inline.
+            {isAdmin
+              ? "Update all profile fields, visibility, and photos for this member."
+              : "Update your details, photos, and preferences inline."}
           </p>
         </div>
         <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={() => { if(onClose) onClose(); else router.push("/profile"); }} className="rounded-xl border-[var(--primary-blue)]/20 text-[var(--primary-blue)] hover:bg-[var(--accent-gold)]/10">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (onClose) onClose();
+              else router.push("/profile");
+            }}
+            className="rounded-xl border-[var(--primary-blue)]/20 text-[var(--primary-blue)] hover:bg-[var(--accent-gold)]/10"
+          >
             Cancel
           </Button>
           <Button
@@ -210,6 +248,120 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
 
+      {isAdmin && (
+        <div className="rounded-2xl p-6 space-y-4 border-2 border-amber-200/60 bg-amber-50/30" style={cardStyle}>
+          <h2 className="font-playfair-display text-lg font-bold" style={{ color: "var(--primary-blue)" }}>
+            Admin & visibility
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Profile status</Label>
+              <Select
+                onValueChange={(v) => form.setValue("profile_status", v as AdminEditFormData["profile_status"])}
+                value={form.watch("profile_status")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="verification_status">Verification</Label>
+              <Input id="verification_status" {...form.register("verification_status")} placeholder="unverified" />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="admin_notes">Admin notes (internal)</Label>
+              <textarea
+                id="admin_notes"
+                {...form.register("admin_notes")}
+                className="flex min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_number">Contact phone</Label>
+              <Input id="contact_number" {...form.register("contact_number")} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="contact_address">Contact address</Label>
+              <Input id="contact_address" {...form.register("contact_address")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gotra">Gotra</Label>
+              <Input id="gotra" {...form.register("gotra")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthplace">Birthplace</Label>
+              <Input id="birthplace" {...form.register("birthplace")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birth_time">Birth time</Label>
+              <Input id="birth_time" {...form.register("birth_time")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="complexion">Complexion</Label>
+              <Input id="complexion" {...form.register("complexion")} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="school">School</Label>
+              <Input id="school" {...form.register("school")} />
+            </div>
+            <div className="flex flex-wrap gap-4 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={form.watch("is_visible")}
+                  onChange={(e) => form.setValue("is_visible", e.target.checked, { shouldDirty: true })}
+                />
+                Visible on site
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={form.watch("show_education")}
+                  onChange={(e) => form.setValue("show_education", e.target.checked, { shouldDirty: true })}
+                />
+                Show education
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={form.watch("show_occupation")}
+                  onChange={(e) => form.setValue("show_occupation", e.target.checked, { shouldDirty: true })}
+                />
+                Show occupation
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={form.watch("show_family")}
+                  onChange={(e) => form.setValue("show_family", e.target.checked, { shouldDirty: true })}
+                />
+                Show family
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={form.watch("show_location")}
+                  onChange={(e) => form.setValue("show_location", e.target.checked, { shouldDirty: true })}
+                />
+                Show location
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl p-6 space-y-4" style={cardStyle}>
         <h2 className="font-playfair-display text-lg font-bold" style={{ color: "var(--primary-blue)" }}>
           Basic info
@@ -224,7 +376,7 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
           </div>
           <div className="space-y-2">
             <Label>Gender *</Label>
-            <Select onValueChange={(v) => form.setValue("gender", v as EditFormData["gender"])} value={form.watch("gender")}>
+            <Select onValueChange={(v) => form.setValue("gender", v as AdminEditFormData["gender"])} value={form.watch("gender")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="male">Male</SelectItem>
@@ -408,6 +560,7 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
           userId={userId}
           initialPhotos={photos}
           onUpdate={handlePhotoUpdate}
+          useAdminClient={isAdmin}
         />
       </div>
     </form>

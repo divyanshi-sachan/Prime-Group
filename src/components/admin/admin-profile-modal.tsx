@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProfileView, type ProfileRecord, type ProfilePhoto, type PartnerPreferences } from "@/components/profile/profile-view";
-import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
+import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 interface AdminProfileModalProps {
@@ -22,74 +24,75 @@ interface AdminProfileModalProps {
 }
 
 export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdate }: AdminProfileModalProps) {
+  const [tab, setTab] = useState<"view" | "edit">("view");
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [preferences, setPreferences] = useState<PartnerPreferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadProfile = useCallback(async () => {
+    if (!profileId) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/admin/profiles/${profileId}`, { credentials: "include" });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        profile?: ProfileRecord & { email?: string | null };
+        photos?: ProfilePhoto[];
+        preferences?: PartnerPreferences | null;
+      };
+
+      if (!res.ok) {
+        setProfile(null);
+        setPhotos([]);
+        setPreferences(null);
+        setLoadError(json.error ?? `Could not load profile (${res.status})`);
+        return;
+      }
+
+      if (!json.profile) {
+        setProfile(null);
+        setPhotos([]);
+        setPreferences(null);
+        setLoadError("Profile data missing from response.");
+        return;
+      }
+
+      setProfile(json.profile as ProfileRecord);
+      setPhotos(json.photos ?? []);
+      setPreferences((json.preferences as PartnerPreferences | null) ?? null);
+    } catch {
+      setProfile(null);
+      setPhotos([]);
+      setPreferences(null);
+      setLoadError("Network error while loading profile.");
+    } finally {
+      setLoading(false);
+    }
+  }, [profileId]);
 
   useEffect(() => {
     if (!open || !profileId) {
       setProfile(null);
       setPhotos([]);
       setPreferences(null);
+      setLoadError(null);
+      setTab("view");
       return;
     }
-
-    const fetchProfile = async () => {
-      setLoading(true);
-      const supabase = createAdminBrowserClient();
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", profileId)
-          .single();
-
-        if (profileError) throw profileError;
-
-        // Fetch email from users table so admin can see it
-        let email: string | null = null;
-        if (profileData?.user_id) {
-          const { data: userRow } = await supabase
-            .from("users")
-            .select("email")
-            .eq("id", profileData.user_id)
-            .single();
-          email = (userRow as { email?: string | null } | null)?.email ?? null;
-        }
-
-        setProfile({ ...(profileData as ProfileRecord), email });
-
-        const { data: photosData } = await supabase
-          .from("profile_photos")
-          .select("id, photo_url, thumbnail_url, display_order, is_primary, status")
-          .eq("profile_id", profileId)
-          .order("display_order", { ascending: true });
-        setPhotos(photosData ?? []);
-
-        const { data: prefsData } = await supabase
-          .from("partner_preferences")
-          .select("*")
-          .eq("profile_id", profileId)
-          .maybeSingle();
-        setPreferences(prefsData as PartnerPreferences | null);
-      } catch (err) {
-        console.error("[admin-profile-modal]", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [open, profileId]);
+    void loadProfile();
+  }, [open, profileId, reloadKey, loadProfile]);
 
   const handleApprove = async () => {
     if (!profileId) return;
     setUpdating(true);
     try {
       await onStatusUpdate(profileId, "active");
-      onOpenChange(false);
+      setReloadKey((k) => k + 1);
     } catch (err) {
       console.error("[admin-profile-modal-approve]", err);
     } finally {
@@ -102,7 +105,7 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
     setUpdating(true);
     try {
       await onStatusUpdate(profileId, "rejected");
-      onOpenChange(false);
+      setReloadKey((k) => k + 1);
     } catch (err) {
       console.error("[admin-profile-modal-reject]", err);
     } finally {
@@ -110,13 +113,18 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
     }
   };
 
+  const userId = profile?.user_id as string | undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 rounded-xl" style={{ backgroundColor: "var(--pure-white)" }}>
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between">
+        <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogDescription className="sr-only">
+            View and edit this member profile, photos, and partner preferences.
+          </DialogDescription>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <DialogTitle className="font-playfair-display text-2xl font-bold" style={{ color: "var(--primary-blue)" }}>
-              {profile ? profile.full_name : "Loading..."}
+              {profile ? profile.full_name : loadError ? "Profile" : "Loading…"}
             </DialogTitle>
             {profile && (
               <Badge
@@ -136,33 +144,63 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
         </DialogHeader>
 
         <div className="px-6 pb-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-gold)" }} />
-            </div>
-          ) : profile ? (
-            <ProfileView
-              profile={profile}
-              photos={photos}
-              preferences={preferences}
-              isOwnProfile={false}
-              forceShowContact
-            />
-          ) : (
-            <div className="text-center py-12 font-general" style={{ color: "var(--primary-blue)" }}>
-              Profile not found
-            </div>
-          )}
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "view" | "edit")} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+              <TabsTrigger value="view" className="font-general">
+                View details
+              </TabsTrigger>
+              <TabsTrigger value="edit" className="font-general" disabled={!profile || !userId}>
+                Edit all fields
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="view" className="mt-0">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-gold)" }} />
+                </div>
+              ) : loadError ? (
+                <div className="text-center py-12 px-4 font-general text-red-700 bg-red-50 rounded-lg border border-red-100">
+                  {loadError}
+                </div>
+              ) : profile ? (
+                <ProfileView
+                  profile={profile}
+                  photos={photos}
+                  preferences={preferences}
+                  isOwnProfile={false}
+                  forceShowContact
+                />
+              ) : (
+                <div className="text-center py-12 font-general" style={{ color: "var(--primary-blue)" }}>
+                  Profile not found
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="edit" className="mt-0 -mx-2 sm:-mx-4">
+              {profile && userId ? (
+                <EditProfileForm
+                  key={`${profile.id}-${reloadKey}`}
+                  profile={profile}
+                  photos={photos}
+                  preferences={preferences}
+                  userId={userId}
+                  variant="admin"
+                  onClose={() => {
+                    setTab("view");
+                    setReloadKey((k) => k + 1);
+                  }}
+                  onSaved={() => setReloadKey((k) => k + 1)}
+                />
+              ) : null}
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {profile && (
+        {profile && tab === "view" && (
           <DialogFooter className="px-6 pb-6 flex-row gap-2 sm:justify-end border-t pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updating}
-              className="font-general"
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updating} className="font-general">
               Close
             </Button>
             {profile.profile_status !== "rejected" && (

@@ -13,6 +13,8 @@
  * | POST | /api/payments/confirm-upi | admin | `requireAdminApiUser()` |
  * | POST | /api/admin/fixed-login | public_secret | Env-fixed credentials → admin session cookie |
  * | * | /api/admin/* (except fixed-login) | admin | Admin cookie session + `users.role` via service role |
+ * | GET | /api/admin/plans | admin | `requireAdminService()` |
+ * | PATCH | /api/admin/plans/[id] | admin | `requireAdminService()` |
  * | GET | /api/credits/balance | member_onboarded | `requireUserWithBasicProfile()` |
  * | POST | /api/credits/unlock | member_onboarded | `requireUserWithBasicProfile()` |
  * | POST | /api/payments/create-order | member_onboarded | `requireUserWithBasicProfile()` |
