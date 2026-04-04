@@ -41,9 +41,9 @@ export default function DiscoverPage({
     <>
       <div
         className="relative w-screen
-  h-[55vh] sm:h-[45vh]
-  min-h-[420px] sm:min-h-[380px]
-  max-h-[560px] sm:max-h-[480px]
+  h-[min(46dvh,360px)] sm:h-[45vh]
+  min-h-[260px] sm:min-h-[380px]
+  max-h-[400px] sm:max-h-[480px] md:max-h-[560px]
   overflow-hidden"
       >
         <Image
@@ -65,41 +65,44 @@ export default function DiscoverPage({
   to-transparent"
         />
 
-        <div className="relative z-10 h-full flex items-center">
-          <div className="container mx-auto px-6 sm:px-10 lg:px-16">
-            <div className="max-w-xl">
+        <div className="relative z-10 h-full flex flex-col justify-end sm:justify-center pb-6 pt-14 sm:pb-0 sm:pt-0">
+          <div className="container mx-auto px-5 sm:px-10 lg:px-16 w-full">
+            <div className="max-w-xl sm:mx-0 mx-auto text-center sm:text-left">
               <h1
                 className="font-playfair-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl
-                font-bold leading-tight text-gold-gradient mb-3 sm:mb-4 mt-16 sm:mt-20"
+                font-bold leading-tight text-gold-gradient mb-2 sm:mb-4"
               >
                 Discover Your Forever
               </h1>
-              <p className="font-general text-base sm:text-lg text-white/85 mb-6">
+              <p className="font-general text-sm sm:text-base md:text-lg text-white/90 sm:text-white/85 mb-0 max-w-md sm:max-w-none mx-auto sm:mx-0 leading-snug sm:leading-normal">
                 Handpicked profiles of accomplished individuals, curated for meaningful and lasting relationships.
               </p>
             </div>
           </div>
         </div>
       </div>
-      <section className="py-20 px-4 sm:px-6 lg:px-8 shadow-lg">
+      <section
+        className="relative z-[2] -mt-5 sm:mt-0 rounded-t-[1.25rem] sm:rounded-none px-4 sm:px-6 lg:px-8 pt-7 pb-12 sm:py-20 shadow-[0_-8px_30px_rgba(10,25,48,0.08)] sm:shadow-lg"
+        style={{ backgroundColor: "var(--pure-white)" }}
+      >
         <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-16">
+          <div className="text-center mb-8 sm:mb-16">
             <div
-              className="inline-block mb-4 px-6 py-2 rounded-full"
+              className="inline-block mb-3 sm:mb-4 px-5 py-1.5 sm:px-6 sm:py-2 rounded-full"
               style={{ backgroundColor: "var(--primary-blue)" }}
             >
-              <span className="text-sm font-general font-semibold uppercase tracking-wide text-gold-gradient">
+              <span className="text-xs sm:text-sm font-general font-semibold uppercase tracking-wide text-gold-gradient">
                 Discover Profiles
               </span>
             </div>
             <h2
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-playfair-display font-bold mb-3 sm:mb-4 text-gold-gradient px-2"
+              className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-playfair-display font-bold mb-2 sm:mb-4 text-gold-gradient px-2"
               style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.15)" }}
             >
               Find Your Perfect Match
             </h2>
             <p
-              className="text-base sm:text-lg md:text-xl font-general max-w-2xl mx-auto px-2"
+              className="text-sm sm:text-lg md:text-xl font-general max-w-2xl mx-auto px-1 sm:px-2 leading-relaxed"
               style={{ color: "var(--primary-blue)" }}
             >
               Discover our handpicked profiles of accomplished individuals looking for their life partner.

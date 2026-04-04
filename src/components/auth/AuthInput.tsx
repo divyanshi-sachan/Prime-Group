@@ -1,5 +1,7 @@
-import React, { useId } from "react";
-import { LucideIcon } from "lucide-react";
+"use client";
+
+import React, { useId, useState } from "react";
+import { Eye, EyeOff, LucideIcon } from "lucide-react";
 import type { FieldValues, Path, UseFormRegister } from "react-hook-form";
 import type { AuthFormData } from "../types/auth";
 
@@ -29,6 +31,10 @@ export function AuthInput<T extends FieldValues = AuthFormData>({
   const generatedId = useId();
   const id = idProp ?? `${generatedId}-${String(name)}`;
   const errorId = `${id}-error`;
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+  const toggleLabel = showPassword ? "Hide password" : "Show password";
 
   return (
     <div className="space-y-1">
@@ -43,13 +49,26 @@ export function AuthInput<T extends FieldValues = AuthFormData>({
         </div>
         <input
           id={id}
-          type={type}
+          type={inputType}
           {...register(name)}
           placeholder={placeholder}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
-          className="block w-full pl-10 pr-3 py-3 text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-blue)] focus:border-transparent"
+          className={`block w-full pl-10 py-3 text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-blue)] focus:border-transparent ${
+            isPassword ? "pr-11" : "pr-3"
+          }`}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-gray-500 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)] focus-visible:ring-offset-1 rounded-r-lg"
+            aria-label={toggleLabel}
+            title={toggleLabel}
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+          </button>
+        )}
       </div>
       {error && (
         <p id={errorId} className="text-red-500 text-sm" role="alert">
