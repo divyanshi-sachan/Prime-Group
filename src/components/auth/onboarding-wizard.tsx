@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,6 @@ import {
   updateStep2,
   updateStep3,
   setIsVisible,
-  clearDraft,
   selectStepIndex,
   selectStep1,
   selectStep2,
@@ -151,6 +151,7 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
 
   const [step, setStep] = useState(reduxStepIndex);
   const [saving, setSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const formatDbError = (context: string, err: unknown) => {
@@ -167,8 +168,9 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
   };
 
   useEffect(() => {
+    if (isFinalizing) return;
     setStep(reduxStepIndex);
-  }, [reduxStepIndex]);
+  }, [reduxStepIndex, isFinalizing]);
 
   const currentSchema = step === PHOTOS_STEP_INDEX ? null : STEP_SCHEMAS[step];
   const defaultVals: AllFormData = {
@@ -291,10 +293,15 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
   const onSubmit = async (data: AllFormData) => {
     setError(null);
     setSaving(true);
+    if (step === PHOTOS_STEP_INDEX) {
+      setIsFinalizing(true);
+    }
     const merged = { ...form.getValues(), ...data } as AllFormData;
     persistStepToRedux(step, merged);
 
     const supabase = createClient();
+
+    let photosFlowNavigatedAway = false;
 
     try {
       const {
@@ -350,9 +357,9 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
           if (insertErr) throw new Error(formatDbError("profile-photos-insert", insertErr));
         }
         clearProfilePhotoFiles();
-        dispatch(clearDraft());
         router.refresh();
         router.push("/onboarding/thank-you");
+        photosFlowNavigatedAway = true;
         return;
       }
 
@@ -498,6 +505,9 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSaving(false);
+      if (step === PHOTOS_STEP_INDEX && !photosFlowNavigatedAway) {
+        setIsFinalizing(false);
+      }
     }
   };
 
@@ -523,7 +533,30 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
   const err = (field: string) => (form.formState.errors as Record<string, { message?: string }>)[field]?.message;
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-start w-full">
+    <div className="relative flex flex-col lg:grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-start w-full">
+      {isFinalizing && (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-5 px-6 bg-[#FDFBF7]/95 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-finalize-title"
+          aria-busy="true"
+        >
+          <Spinner size="md" />
+          <div className="max-w-md text-center space-y-2">
+            <h2
+              id="onboarding-finalize-title"
+              className="font-playfair-display text-xl sm:text-2xl font-bold"
+              style={{ color: "var(--primary-blue)" }}
+            >
+              Saving your profile…
+            </h2>
+            <p className="text-sm font-general text-gray-600 leading-relaxed">
+              Please wait while we upload your photos and register your details. This may take a moment on slower connections.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="order-1 lg:order-2 lg:col-span-4 w-full lg:sticky lg:top-8 animate-in fade-in slide-in-from-right-4 duration-500">
         <OnboardingChecklist currentStep={step} email={email} />
       </div>

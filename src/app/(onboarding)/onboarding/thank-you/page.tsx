@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasCompletedBasicProfile } from "@/lib/profile-basic-gate";
+import { ClearProfileDraftOnMount } from "@/components/auth/clear-profile-draft-on-mount";
 
 export default async function OnboardingThankYouPage() {
   const supabase = await createClient();
@@ -29,6 +30,7 @@ export default async function OnboardingThankYouPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center px-4 py-10">
+      <ClearProfileDraftOnMount />
       <div
         className="w-full max-w-xl rounded-3xl bg-white border shadow-[0_20px_60px_rgba(0,0,0,0.05)] p-8 sm:p-10"
         style={{ borderColor: "rgba(198,167,94,0.35)" }}
