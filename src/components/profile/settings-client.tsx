@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 interface VisibilityState {
   is_visible: boolean;
@@ -143,8 +143,8 @@ export function SettingsClient({
               {message.text}
             </p>
           )}
-          <Button onClick={savePrivacy} disabled={saving} style={{ backgroundColor: "var(--primary-blue)" }}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save privacy settings"}
+          <Button onClick={savePrivacy} loading={saving} style={{ backgroundColor: "var(--primary-blue)" }}>
+            {saving ? "Saving…" : "Save privacy settings"}
           </Button>
         </div>
       )}
@@ -159,11 +159,14 @@ export function SettingsClient({
         <Button
           variant="outline"
           onClick={handleSignOut}
-          disabled={signingOut}
+          loading={signingOut}
           className="gap-2 border-red-200 text-red-700 hover:bg-red-50"
         >
-          {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-          Sign out
+          {signingOut ? "Signing out…" : (
+            <>
+              <LogOut className="h-4 w-4" aria-hidden /> Sign out
+            </>
+          )}
         </Button>
       </div>
     </div>

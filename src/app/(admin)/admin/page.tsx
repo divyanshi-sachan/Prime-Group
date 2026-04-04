@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
+import { Spinner } from "@/components/ui/spinner";
 
 interface RevenueRow {
   total: number;
@@ -354,7 +355,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">Loading...</td></tr>
+                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
                   ) : byGender.length === 0 ? (
                     <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
                   ) : (
@@ -388,7 +389,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">Loading...</td></tr>
+                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
                   ) : byReligion.length === 0 ? (
                     <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
                   ) : (
@@ -422,7 +423,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">Loading...</td></tr>
+                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
                   ) : byStatus.length === 0 ? (
                     <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
                   ) : (
@@ -456,7 +457,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">Loading...</td></tr>
+                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
                   ) : byCity.length === 0 ? (
                     <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
                   ) : (

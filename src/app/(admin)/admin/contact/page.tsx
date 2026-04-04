@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Mail, RefreshCw, Eye, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 
 interface ContactRow {
@@ -105,8 +106,8 @@ export default function AdminContactPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--primary-blue)" }} />
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Spinner size="md" label="Loading submissions…" />
             </div>
           ) : submissions.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

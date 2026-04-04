@@ -195,6 +195,7 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
             </span>
             <button
               type="button"
+              aria-busy={resending}
               disabled={
                 resending ||
                 (resendNotBefore !== null && Date.now() < resendNotBefore)
@@ -255,9 +256,10 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
                   setResending(false);
                 }
               }}
-              className="font-semibold underline underline-offset-2 disabled:opacity-60 disabled:no-underline"
+              className="font-semibold underline underline-offset-2 disabled:opacity-60 disabled:no-underline inline-flex items-center gap-2"
               style={{ color: "var(--accent-gold)" }}
             >
+              {resending ? <Spinner size="sm" /> : null}
               {resending
                 ? "Sending…"
                 : (() => {
@@ -351,11 +353,15 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
           type="submit"
           disabled={isSubmitting}
           aria-label={submitLabel ?? (isSignUp ? "Sign up" : "Sign in")}
+          aria-busy={isSubmitting}
           className="w-full py-3 px-4 rounded-lg text-base font-general font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={{ backgroundColor: "var(--primary-blue)" }}
         >
           {isSubmitting ? (
-            <Spinner size="sm" />
+            <>
+              <Spinner size="sm" />
+              <span>{isSignUp ? "Creating account…" : "Signing in…"}</span>
+            </>
           ) : (
             submitLabel ?? (isSignUp ? "Sign up" : "Sign in")
           )}

@@ -19,6 +19,7 @@ import {
   Calendar,
   CreditCard,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 import { cn } from "@/lib/utils";
 
@@ -257,7 +258,9 @@ export default function AdminRevenuePage() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-gray-500">Loading...</p>
+              <div className="flex justify-center py-6">
+                <Spinner size="md" label="Loading revenue breakdown…" />
+              </div>
             ) : byPlan.length === 0 ? (
               <p className="text-sm text-gray-500">No payment data yet.</p>
             ) : (
@@ -306,8 +309,10 @@ export default function AdminRevenuePage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-6 text-gray-500 font-general">
-                      Loading...
+                    <TableCell colSpan={3} className="py-10">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Spinner size="md" label="Loading monthly data…" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : byMonth.length === 0 ? (
@@ -367,7 +372,7 @@ export default function AdminRevenuePage() {
                           size="sm"
                           className="rounded-lg font-general"
                           style={{ backgroundColor: "var(--primary-blue)" }}
-                          disabled={confirmingId === row.id}
+                          loading={confirmingId === row.id}
                           onClick={async () => {
                             setConfirmingId(row.id);
                             try {
@@ -382,7 +387,7 @@ export default function AdminRevenuePage() {
                             }
                           }}
                         >
-                          {confirmingId === row.id ? "…" : "Confirm paid"}
+                          {confirmingId === row.id ? "Confirming…" : "Confirm paid"}
                         </Button>
                       </TableCell>
                     </TableRow>

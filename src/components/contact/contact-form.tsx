@@ -151,7 +151,7 @@ export default function ContactForm() {
         {errorText && <p className="text-sm font-general text-red-600">{errorText}</p>}
         <Button
           type="submit"
-          disabled={status === "loading"}
+          loading={status === "loading"}
           className="w-full h-14 rounded-2xl bg-gold-gradient text-[#001a33] font-bold text-base shadow-[0_0_28px_rgba(226,194,133,0.3)] hover:shadow-[0_0_36px_rgba(226,194,133,0.45)] hover:scale-[1.01] transition-all border-none font-general"
         >
           {status === "loading" ? (

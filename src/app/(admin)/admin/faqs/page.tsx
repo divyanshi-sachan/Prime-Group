@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { HelpCircle, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 
 interface FaqRow {
@@ -160,8 +161,8 @@ export default function AdminFaqsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--primary-blue)" }} />
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Spinner size="md" label="Loading FAQs…" />
             </div>
           ) : faqs.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

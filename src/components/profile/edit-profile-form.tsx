@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { ProfilePhotoManager } from "./profile-photo-manager";
 import type { ProfileRecord } from "./profile-view";
-import { Loader2 } from "lucide-react";
 
 const editSchema = z.object({
   full_name: z.string().min(2),
@@ -184,9 +183,14 @@ export function EditProfileForm({ profile, photos, preferences, userId, onClose 
           <Button type="button" variant="outline" onClick={() => { if(onClose) onClose(); else router.push("/profile"); }} className="rounded-xl border-[var(--primary-blue)]/20 text-[var(--primary-blue)] hover:bg-[var(--accent-gold)]/10">
             Cancel
           </Button>
-          <Button type="submit" disabled={saving || !form.formState.isDirty} className="rounded-xl shadow-md transition-all px-6" style={{ backgroundColor: "var(--primary-blue)", color: "white" }}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {saving ? "Saving..." : "Save Profile"}
+          <Button
+            type="submit"
+            loading={saving}
+            disabled={!form.formState.isDirty}
+            className="rounded-xl shadow-md transition-all px-6"
+            style={{ backgroundColor: "var(--primary-blue)", color: "white" }}
+          >
+            {saving ? "Saving…" : "Save Profile"}
           </Button>
         </div>
       </div>

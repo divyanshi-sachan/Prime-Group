@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { POST_AUTH_COOKIE_HINT_PARAM } from "@/lib/auth/post-auth-landing";
 import { CheckCircle2, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { User } from "@supabase/supabase-js";
 
 type HiMode =
@@ -98,6 +99,14 @@ export function HiContent() {
           : mode === "session_continue"
             ? "You can explore the site while signed in."
             : "Choose an option below.";
+
+  if (mode === "loading") {
+    return (
+      <div className="relative min-h-screen flex flex-col items-center justify-center gap-4 px-4 py-12">
+        <Spinner label="Checking your session…" />
+      </div>
+    );
+  }
 
   const primaryCta =
     mode === "cleared_password" || mode === "verified_no_cookie" ? (

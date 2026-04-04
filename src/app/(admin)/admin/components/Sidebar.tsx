@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   BarChart3,
   Users,
@@ -20,6 +21,7 @@ import {
   Mail,
   X,
   KeyRound,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,13 +48,20 @@ interface SidebarProps {
 export function Sidebar({ collapsed = false, onToggle, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    const { createAdminBrowserClient } = await import("@/lib/supabase/client-admin");
-    const supabase = createAdminBrowserClient();
-    await supabase.auth.signOut();
-    router.replace("/admin/login");
-    router.refresh();
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      const { createAdminBrowserClient } = await import("@/lib/supabase/client-admin");
+      const supabase = createAdminBrowserClient();
+      await supabase.auth.signOut();
+      router.replace("/admin/login");
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -185,17 +194,24 @@ export function Sidebar({ collapsed = false, onToggle, onMobileClose }: SidebarP
           </div>
         )}
         <button
-          onClick={handleLogout}
+          type="button"
+          onClick={() => void handleLogout()}
+          disabled={loggingOut}
+          aria-busy={loggingOut}
           className={cn(
-            "flex items-center w-full rounded-xl text-sm font-semibold font-general text-red-600 hover:bg-red-50 transition-all duration-200",
+            "flex items-center w-full rounded-xl text-sm font-semibold font-general text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-60",
             collapsed ? "justify-center px-3 py-3" : "gap-3 px-4 py-3"
           )}
           title={collapsed ? "Logout" : undefined}
         >
           <div className="rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 hover:bg-red-100" style={{ color: "var(--primary-blue)" }}>
-            <LogOut className={cn(collapsed ? "w-5 h-5" : "w-4 h-4")} />
+            {loggingOut ? (
+              <Loader2 className={cn("animate-spin", collapsed ? "w-5 h-5" : "w-4 h-4")} aria-hidden />
+            ) : (
+              <LogOut className={cn(collapsed ? "w-5 h-5" : "w-4 h-4")} aria-hidden />
+            )}
           </div>
-          {!collapsed && <span className="truncate">Logout</span>}
+          {!collapsed && <span className="truncate">{loggingOut ? "Signing out…" : "Logout"}</span>}
         </button>
       </div>
     </div>

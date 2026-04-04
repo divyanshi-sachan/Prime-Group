@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KeyRound, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface AuthUserRow {
   id: string;
@@ -118,8 +119,10 @@ export default function AdminAuthUsersPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500 font-general">
-                      Loading…
+                    <TableCell colSpan={6} className="py-12">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Spinner size="md" label="Loading auth users…" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (

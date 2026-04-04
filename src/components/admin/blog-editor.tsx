@@ -350,7 +350,7 @@ export function BlogEditor({
           />
           <span className="text-sm font-medium">Publish immediately</span>
         </label>
-        <Button type="submit" disabled={saving} style={{ backgroundColor: "var(--primary-blue)" }}>
+        <Button type="submit" loading={saving} style={{ backgroundColor: "var(--primary-blue)" }}>
           {saving ? "Saving…" : "Save post"}
         </Button>
       </div>

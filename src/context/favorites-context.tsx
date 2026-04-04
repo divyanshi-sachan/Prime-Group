@@ -10,6 +10,8 @@ interface FavoritesContextType {
   isFavorite: (id: string) => boolean;
   favoritesCount: number;
   isLoading: boolean;
+  /** Profile id while a logged-in toggle request is in flight (for button spinners). */
+  favoriteToggleProfileId: string | null;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [favoriteToggleProfileId, setFavoriteToggleProfileId] = useState<string | null>(null);
 
   // Load favorites: from Supabase when logged in, else from localStorage
   useEffect(() => {
@@ -65,18 +68,30 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const toggleFavorite = useCallback(
     async (profileId: string) => {
       if (user) {
-        const supabase = createClient();
-        const isCurrently = favorites.has(profileId);
-        if (isCurrently) {
-          const { error } = await supabase
-            .from("profile_favorites")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("profile_id", profileId);
-          if (!error) setFavorites((prev) => { const n = new Set(prev); n.delete(profileId); return n; });
-        } else {
-          const { error } = await supabase.from("profile_favorites").insert({ user_id: user.id, profile_id: profileId });
-          if (!error) setFavorites((prev) => new Set(prev).add(profileId));
+        if (favoriteToggleProfileId === profileId) return;
+        setFavoriteToggleProfileId(profileId);
+        try {
+          const supabase = createClient();
+          const isCurrently = favorites.has(profileId);
+          if (isCurrently) {
+            const { error } = await supabase
+              .from("profile_favorites")
+              .delete()
+              .eq("user_id", user.id)
+              .eq("profile_id", profileId);
+            if (!error) setFavorites((prev) => {
+              const n = new Set(prev);
+              n.delete(profileId);
+              return n;
+            });
+          } else {
+            const { error } = await supabase
+              .from("profile_favorites")
+              .insert({ user_id: user.id, profile_id: profileId });
+            if (!error) setFavorites((prev) => new Set(prev).add(profileId));
+          }
+        } finally {
+          setFavoriteToggleProfileId(null);
         }
       } else {
         setFavorites((prev) => {
@@ -87,7 +102,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-    [user, favorites]
+    [user, favorites, favoriteToggleProfileId]
   );
 
   const isFavorite = useCallback((id: string) => favorites.has(id), [favorites]);
@@ -100,6 +115,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         isFavorite,
         favoritesCount: favorites.size,
         isLoading,
+        favoriteToggleProfileId,
       }}
     >
       {children}

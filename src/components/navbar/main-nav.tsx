@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import MobileNav from "./mobile-nav";
-import { Heart, User, Settings, LogOut, Coins } from "lucide-react";
+import { Heart, User, Settings, LogOut, Coins, Loader2 } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
 import { useAuth } from "@/components/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -41,6 +41,7 @@ export default function MainNav() {
   const pathname = usePathname();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const isHome = pathname === "/";
   useEffect(() => {
@@ -200,13 +201,25 @@ export default function MainNav() {
                       </Link>
                       <div className="my-2 h-px bg-[#E2C285]/18" />
                       <button
-                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200"
+                        type="button"
+                        disabled={signingOut}
+                        aria-busy={signingOut}
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200 disabled:opacity-60"
                         onClick={async () => {
-                          await signOut();
+                          setSigningOut(true);
+                          try {
+                            await signOut();
+                          } finally {
+                            setSigningOut(false);
+                          }
                         }}
                       >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
+                        {signingOut ? (
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                        ) : (
+                          <LogOut className="h-4 w-4" aria-hidden />
+                        )}
+                        {signingOut ? "Signing out…" : "Sign Out"}
                       </button>
                     </div>
                   </PopoverContent>

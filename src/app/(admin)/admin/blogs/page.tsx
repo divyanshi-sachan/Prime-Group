@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileText, Plus, Pencil, Eye, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 import type { BlogPost } from "@/lib/blogs";
 
@@ -95,11 +96,8 @@ export default function AdminBlogsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div
-                className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
-                style={{ borderColor: "var(--primary-blue)" }}
-              />
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Spinner size="md" label="Loading posts…" />
             </div>
           ) : blogs.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

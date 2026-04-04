@@ -457,6 +457,10 @@ function CheckoutContent() {
               <p className="font-general text-xs text-[#003366]/55 mb-6 leading-relaxed">
                 After you pay, we verify and add credits. This page refreshes when done—or check your balance in a few minutes.
               </p>
+              <p className="flex items-center justify-center gap-2 font-general text-sm text-[#003366]/75 mb-4" role="status" aria-live="polite">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0 text-[#E2C285]" aria-hidden />
+                Checking payment status every few seconds…
+              </p>
               <Button
                 variant="outline"
                 className="w-full h-12 rounded-2xl border-2 border-[#003366]/20 text-[#003366] font-semibold hover:bg-[#003366]/5"

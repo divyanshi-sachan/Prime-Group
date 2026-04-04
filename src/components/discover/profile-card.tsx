@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Heart, MapPin, Briefcase, GraduationCap } from "lucide-react"
+import { Heart, Loader2, MapPin, Briefcase, GraduationCap } from "lucide-react"
 import { useFavorites } from "@/context/favorites-context"
 import type { DiscoverCardData } from "@/lib/discover"
 
@@ -13,8 +13,9 @@ interface ProfileCardProps {
 }
 
 export default function ProfileCard({ data, index }: ProfileCardProps) {
-  const { isFavorite, toggleFavorite } = useFavorites()
+  const { isFavorite, toggleFavorite, favoriteToggleProfileId } = useFavorites()
   const favorite = isFavorite(data.id)
+  const toggleBusy = favoriteToggleProfileId === data.id
 
   return (
     <motion.div
@@ -36,18 +37,26 @@ export default function ProfileCard({ data, index }: ProfileCardProps) {
     >
       {/* Favorite Button */}
       <button
+        type="button"
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
-          toggleFavorite(data.id)
+          void toggleFavorite(data.id)
         }}
-        className="absolute top-5 right-5 z-10 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-115"
+        disabled={toggleBusy}
+        aria-busy={toggleBusy}
+        aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+        className="absolute top-5 right-5 z-10 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-115 disabled:opacity-80 disabled:pointer-events-none"
         style={{
           backgroundColor: favorite ? "var(--accent-gold)" : "rgba(255, 255, 255, 0.9)",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         }}
       >
-        <Heart className={`h-5 w-5 ${favorite ? "fill-red-500 text-red-500" : "text-gray-500"}`} />
+        {toggleBusy ? (
+          <Loader2 className="h-5 w-5 animate-spin text-gray-600" aria-hidden />
+        ) : (
+          <Heart className={`h-5 w-5 ${favorite ? "fill-red-500 text-red-500" : "text-gray-500"}`} aria-hidden />
+        )}
       </button>
 
       <Link href={data.ctaHref ?? `/discover/${data.id}`}>

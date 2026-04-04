@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { IndianRupee, Pencil, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 
 interface Plan {
@@ -164,8 +165,10 @@ export default function AdminPricingPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500 font-general">
-                      Loading...
+                    <TableCell colSpan={7} className="py-12">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Spinner size="md" label="Loading plans…" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : plans.length === 0 ? (
@@ -279,8 +282,13 @@ export default function AdminPricingPage() {
             <Button variant="outline" onClick={() => setEditing(null)} className="rounded-xl">
               Cancel
             </Button>
-            <Button onClick={savePlan} disabled={saving} className="rounded-xl" style={{ backgroundColor: "var(--primary-blue)" }}>
-              {saving ? "Saving..." : "Save"}
+            <Button
+              onClick={savePlan}
+              loading={saving}
+              className="rounded-xl"
+              style={{ backgroundColor: "var(--primary-blue)" }}
+            >
+              {saving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

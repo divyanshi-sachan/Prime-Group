@@ -6,6 +6,7 @@ import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "./components/Sidebar";
 import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -71,11 +72,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div
-          className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent"
-          style={{ borderColor: "var(--primary-blue)", borderTopColor: "transparent" }}
-        />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 gap-3">
+        <Spinner label="Verifying admin access…" />
       </div>
     );
   }

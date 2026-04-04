@@ -94,16 +94,9 @@ export default function AdminSettingsPage() {
                 className="rounded-xl font-general"
                 style={{ backgroundColor: "var(--primary-blue)" }}
                 onClick={handleSavePayment}
-                disabled={saving}
+                loading={saving}
               >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save payment method"
-                )}
+                {saving ? "Saving…" : "Save payment method"}
               </Button>
             </>
           )}

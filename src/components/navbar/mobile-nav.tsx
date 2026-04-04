@@ -18,6 +18,7 @@ import { useCredits } from "@/context/credits-context";
 
 export default function MobileNav() {
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const { user, signOut } = useAuth();
   const { credits } = useCredits();
 
@@ -26,8 +27,13 @@ export default function MobileNav() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    setOpen(false);
+    setSigningOut(true);
+    try {
+      await signOut();
+      setOpen(false);
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -93,8 +99,17 @@ export default function MobileNav() {
                 <Link href="/settings" className="flex items-center gap-2 py-2 text-lg font-semibold" onClick={handleLinkClick}>
                   <Settings className="h-5 w-5" /> Settings
                 </Link>
-                <Button variant="outline" className="justify-start gap-2 text-red-600 border-red-200" onClick={handleSignOut}>
-                  <LogOut className="h-5 w-5" /> Sign out
+                <Button
+                  variant="outline"
+                  loading={signingOut}
+                  className="justify-start gap-2 text-red-600 border-red-200"
+                  onClick={() => void handleSignOut()}
+                >
+                  {signingOut ? "Signing out…" : (
+                    <>
+                      <LogOut className="h-5 w-5" aria-hidden /> Sign out
+                    </>
+                  )}
                 </Button>
               </>
             ) : (
