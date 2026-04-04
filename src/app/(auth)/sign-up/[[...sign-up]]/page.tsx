@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AuthForm } from "@/components/auth/auth-form";
-import { cn } from "@/lib/utils";
+import { authFormAccentLinkClass, authHeroAccentLinkClass } from "@/components/auth/auth-accent-link";
 
 export default function SignUpPage() {
   return (
@@ -46,7 +46,7 @@ export default function SignUpPage() {
           <div className="space-y-2 relative z-10">
             <p className="text-sm text-white/85 font-general">
               Already registered?{" "}
-              <Link href="/sign-in" className="font-semibold underline underline-offset-2" style={{ color: "var(--accent-gold)" }}>
+              <Link href="/sign-in" className={authHeroAccentLinkClass}>
                 Sign in
               </Link>
             </p>
@@ -72,7 +72,7 @@ export default function SignUpPage() {
               </p>
               <p className="text-sm text-gray-500 font-general">
                 Already registered?{" "}
-                <Link href="/sign-in" className="font-semibold underline underline-offset-2" style={{ color: "var(--accent-gold)" }}>
+                <Link href="/sign-in" className={authFormAccentLinkClass}>
                   Sign in
                 </Link>
               </p>

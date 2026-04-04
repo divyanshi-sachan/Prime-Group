@@ -15,6 +15,7 @@ import { getPostLoginRedirect } from "@/lib/post-login-redirect";
 import { getSiteUrl } from "@/lib/site";
 import type { AuthFormData } from "../types/auth";
 import { PASSWORD_REQUIREMENT_HINT, signupPasswordSchema } from "@/lib/auth/password-policy";
+import { authFormAccentLinkClass, authFormLegalLinkClass } from "@/components/auth/auth-accent-link";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -39,8 +40,6 @@ const signUpSchema = signInSchema
 type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
-const linkClass =
-  "font-medium underline hover:opacity-90 transition-colors";
 const inputErrorClass = "text-red-500 text-sm";
 
 const RESEND_VERIFICATION_COOLDOWN_MS = 60_000;
@@ -319,9 +318,13 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
               />
               <label htmlFor="acceptTerms" className="text-sm text-gray-600">
                 I agree to the{" "}
-                <Link href="/terms" className={linkClass} style={{ color: "var(--accent-gold)" }}>Terms of Service</Link>
+                <Link href="/terms" className={authFormLegalLinkClass}>
+                  Terms of Service
+                </Link>
                 {" "}and{" "}
-                <Link href="/privacy" className={linkClass} style={{ color: "var(--accent-gold)" }}>Privacy Policy</Link>
+                <Link href="/privacy" className={authFormLegalLinkClass}>
+                  Privacy Policy
+                </Link>
               </label>
             </div>
             {(errors as any).acceptTerms && (
@@ -340,11 +343,7 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
               />
               <span style={{ color: "var(--primary-blue)" }}>Remember me</span>
             </label>
-            <Link
-              href="/forgot-password"
-              className={linkClass}
-              style={{ color: "var(--accent-gold)" }}
-            >
+            <Link href="/forgot-password" className={authFormAccentLinkClass}>
               Forgot password?
             </Link>
           </div>
@@ -369,13 +368,9 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
         </button>
       </form>
 
-      <p className="text-center text-sm mt-6" style={{ color: "var(--primary-blue)" }}>
+      <p className="text-center text-sm mt-6 text-gray-600">
         {isSignUp ? "Already have an account? " : "New here? "}
-        <Link
-          href={isSignUp ? "/sign-in" : "/sign-up"}
-          className={linkClass}
-          style={{ color: "var(--accent-gold)" }}
-        >
+        <Link href={isSignUp ? "/sign-in" : "/sign-up"} className={authFormAccentLinkClass}>
           {isSignUp ? "Sign in" : "Create an account"}
         </Link>
       </p>

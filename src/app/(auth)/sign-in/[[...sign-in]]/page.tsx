@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AuthForm } from "@/components/auth/auth-form";
-import { cn } from "@/lib/utils";
+import { authFormAccentLinkClass, authHeroAccentLinkClass } from "@/components/auth/auth-accent-link";
 import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
 
 export default async function SignInPage({
@@ -61,7 +61,7 @@ export default async function SignInPage({
           <div className="space-y-2 relative z-10">
             <p className="text-sm text-white/85 font-general">
               New to Prime Group?{" "}
-              <Link href="/sign-up" className="font-semibold underline underline-offset-2" style={{ color: "var(--accent-gold)" }}>
+              <Link href="/sign-up" className={authHeroAccentLinkClass}>
                 Register free
               </Link>
             </p>
@@ -87,7 +87,7 @@ export default async function SignInPage({
               </p>
               <p className="text-sm text-gray-500 font-general">
                 New to Prime Group?{" "}
-                <Link href="/sign-up" className="font-semibold underline underline-offset-2" style={{ color: "var(--accent-gold)" }}>
+                <Link href="/sign-up" className={authFormAccentLinkClass}>
                   Register free
                 </Link>
               </p>

@@ -6,8 +6,7 @@ export const PASSWORD_MIN_LENGTH = 8;
 /**
  * Short hint for form helper text — avoids overly strict rules (no mixed case + digit + symbol all at once).
  */
-export const PASSWORD_REQUIREMENT_HINT =
-  "At least 8 characters: use letters and either a number or a simple symbol (! @ # * - . ,).";
+export const PASSWORD_REQUIREMENT_HINT = "";
 
 const HAS_LETTER = /[a-zA-Z]/;
 /** Digit or a small set of symbols that are easy to type and read. */
