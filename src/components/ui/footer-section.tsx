@@ -91,10 +91,18 @@ function Footerdemo() {
             <h3 className="mb-4 text-lg font-playfair-display font-bold text-gold-gradient">Contact Us</h3>
             <address className="space-y-2 text-sm not-italic font-general" style={{ color: 'var(--pure-white)' }}>
               <p>Prime Group Matrimony</p>
-              <p>123 Matrimony Avenue</p>
-              <p>Mumbai, Maharashtra 400001</p>
+              <p>Near Research and Innovation Park - IIT Delhi, 110016</p>
               <p>Phone: +91 123 456 7890</p>
-              <p>Email: info@primegroupmatrimony.com</p>
+              <p>
+                Email:{" "}
+                <a
+                  href="mailto:primegroupmatrimony@gmail.com"
+                  className="underline underline-offset-2 transition-opacity hover:opacity-90"
+                  style={{ color: "var(--accent-gold)" }}
+                >
+                  primegroupmatrimony@gmail.com
+                </a>
+              </p>
             </address>
           </div>
           <div className="relative">
