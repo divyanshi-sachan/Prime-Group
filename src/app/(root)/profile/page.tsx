@@ -1,20 +1,18 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProfileView } from "@/components/profile/profile-view";
+import { ProfileDetailSkeleton } from "@/components/loading/route-content-skeletons";
 
-export default async function ProfilePage() {
+async function ProfilePageBody({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in?next=/profile");
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (profileError || !profile) {
@@ -60,9 +58,31 @@ export default async function ProfilePage() {
           photos={photos ?? []}
           preferences={preferences ?? null}
           isOwnProfile
-          userId={user.id}
+          userId={userId}
         />
       </div>
     </div>
+  );
+}
+
+async function ProfileGate() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/sign-in?next=/profile");
+
+  return (
+    <Suspense fallback={<ProfileDetailSkeleton />}>
+      <ProfilePageBody userId={user.id} />
+    </Suspense>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileDetailSkeleton />}>
+      <ProfileGate />
+    </Suspense>
   );
 }

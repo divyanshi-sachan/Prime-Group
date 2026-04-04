@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProfileView } from "@/components/profile/profile-view";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import { ProfileDetailSkeleton } from "@/components/loading/route-content-skeletons";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,9 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!profile) return { title: "Profile | Prime Group" };
 
-  const age =
-    new Date().getFullYear() -
-    new Date(profile.date_of_birth).getFullYear();
+  const age = new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear();
   const location = [profile.city, profile.state, profile.country].filter(Boolean).join(", ");
 
   return {
@@ -39,11 +39,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function PublicProfilePage({ params }: PageProps) {
+async function PublicProfileBody({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Get current user (if logged in)
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
@@ -71,10 +70,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
     .eq("profile_id", profile.id)
     .single();
 
-  // Check if this is the user's own profile
   const isOwn = authUser?.id === profile.user_id;
 
-  // Fetch unlocked profiles for this user
   let unlockedProfileIds: string[] = [];
   if (authUser && !isOwn) {
     const { data: unlocks } = await supabase
@@ -84,6 +81,20 @@ export default async function PublicProfilePage({ params }: PageProps) {
     unlockedProfileIds = (unlocks ?? []).map((u: { profile_id: string }) => u.profile_id);
   }
 
+  return (
+    <ProfileView
+      profile={profile}
+      photos={photos ?? []}
+      preferences={preferences ?? null}
+      isOwnProfile={isOwn}
+      userId={isOwn ? authUser?.id : undefined}
+      currentUserId={authUser?.id}
+      unlockedProfileIds={unlockedProfileIds}
+    />
+  );
+}
+
+export default function PublicProfilePage({ params }: PageProps) {
   return (
     <div className="min-h-screen py-12 px-4" style={{ backgroundColor: "var(--pure-white)" }}>
       <div className="container mx-auto max-w-5xl">
@@ -95,17 +106,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </Link>
           </Button>
         </div>
-        <ProfileView
-          profile={profile}
-          photos={photos ?? []}
-          preferences={preferences ?? null}
-          isOwnProfile={isOwn}
-          userId={isOwn ? authUser?.id : undefined}
-          currentUserId={authUser?.id}
-          unlockedProfileIds={unlockedProfileIds}
-        />
+        <Suspense fallback={<ProfileDetailSkeleton />}>
+          <PublicProfileBody params={params} />
+        </Suspense>
       </div>
     </div>
   );
 }
-

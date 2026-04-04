@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SettingsClient } from "@/components/profile/settings-client";
 import { ArrowLeft } from "lucide-react";
+import { SettingsPageSkeleton } from "@/components/loading/route-content-skeletons";
 
-export default async function SettingsPage() {
+async function SettingsContent() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,5 +50,13 @@ export default async function SettingsPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsPageSkeleton />}>
+      <SettingsContent />
+    </Suspense>
   );
 }

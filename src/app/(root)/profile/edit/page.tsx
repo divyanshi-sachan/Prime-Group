@@ -1,21 +1,19 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { ArrowLeft } from "lucide-react";
+import { ProfileEditSkeleton } from "@/components/loading/route-content-skeletons";
 
-export default async function ProfileEditPage() {
+async function ProfileEditBody({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in?next=/profile/edit");
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (profileError || !profile) {
@@ -69,9 +67,31 @@ export default async function ProfileEditPage() {
           profile={profile}
           photos={photos ?? []}
           preferences={preferences ?? null}
-          userId={user.id}
+          userId={userId}
         />
       </div>
     </div>
+  );
+}
+
+async function ProfileEditGate() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/sign-in?next=/profile/edit");
+
+  return (
+    <Suspense fallback={<ProfileEditSkeleton />}>
+      <ProfileEditBody userId={user.id} />
+    </Suspense>
+  );
+}
+
+export default function ProfileEditPage() {
+  return (
+    <Suspense fallback={<ProfileEditSkeleton />}>
+      <ProfileEditGate />
+    </Suspense>
   );
 }

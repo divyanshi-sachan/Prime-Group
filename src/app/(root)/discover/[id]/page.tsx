@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { ProfileView } from "@/components/profile/profile-view";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { discoverOppositeGenderForViewer } from "@/lib/discover";
+import { ProfileDetailSkeleton } from "@/components/loading/route-content-skeletons";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function DiscoverProfilePage({ params }: PageProps) {
+async function DiscoverProfileBody({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
@@ -116,6 +118,20 @@ export default async function DiscoverProfilePage({ params }: PageProps) {
   }
 
   return (
+    <ProfileView
+      profile={profile}
+      photos={photos ?? []}
+      preferences={preferences ?? null}
+      isOwnProfile={isOwn}
+      userId={isOwn ? authUser?.id : undefined}
+      currentUserId={authUser?.id}
+      unlockedProfileIds={unlockedProfileIds}
+    />
+  );
+}
+
+export default function DiscoverProfilePage({ params }: PageProps) {
+  return (
     <div className="min-h-screen py-12 px-4" style={{ backgroundColor: "var(--pure-white)" }}>
       <div className="container mx-auto max-w-5xl">
         <div className="mb-6">
@@ -126,15 +142,9 @@ export default async function DiscoverProfilePage({ params }: PageProps) {
             </Link>
           </Button>
         </div>
-        <ProfileView
-          profile={profile}
-          photos={photos ?? []}
-          preferences={preferences ?? null}
-          isOwnProfile={isOwn}
-          userId={isOwn ? authUser?.id : undefined}
-          currentUserId={authUser?.id}
-          unlockedProfileIds={unlockedProfileIds}
-        />
+        <Suspense fallback={<ProfileDetailSkeleton />}>
+          <DiscoverProfileBody params={params} />
+        </Suspense>
       </div>
     </div>
   );

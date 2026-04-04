@@ -1,6 +1,8 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import { getDiscoverProfiles } from "@/lib/discover";
 import DiscoverGrid from "@/components/discover/discover-grid";
+import { DiscoverGridSkeleton } from "@/components/loading/route-content-skeletons";
 
 type DiscoverSearchParams = {
   city?: string;
@@ -8,7 +10,7 @@ type DiscoverSearchParams = {
   intent?: string;
 };
 
-export default async function DiscoverPage({
+async function DiscoverProfilesSection({
   searchParams,
 }: {
   searchParams: Promise<DiscoverSearchParams>;
@@ -20,6 +22,21 @@ export default async function DiscoverPage({
 
   const profiles = await getDiscoverProfiles();
 
+  return (
+    <DiscoverGrid
+      profiles={profiles}
+      initialCity={city}
+      initialReligion={religion}
+      initialIntent={intent}
+    />
+  );
+}
+
+export default function DiscoverPage({
+  searchParams,
+}: {
+  searchParams: Promise<DiscoverSearchParams>;
+}) {
   return (
     <>
       <div
@@ -64,9 +81,7 @@ export default async function DiscoverPage({
           </div>
         </div>
       </div>
-      <section
-        className="py-20 px-4 sm:px-6 lg:px-8 shadow-lg"
-      >
+      <section className="py-20 px-4 sm:px-6 lg:px-8 shadow-lg">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <div
@@ -83,17 +98,17 @@ export default async function DiscoverPage({
             >
               Find Your Perfect Match
             </h2>
-            <p className="text-base sm:text-lg md:text-xl font-general max-w-2xl mx-auto px-2" style={{ color: "var(--primary-blue)" }}>
+            <p
+              className="text-base sm:text-lg md:text-xl font-general max-w-2xl mx-auto px-2"
+              style={{ color: "var(--primary-blue)" }}
+            >
               Discover our handpicked profiles of accomplished individuals looking for their life partner.
             </p>
           </div>
 
-          <DiscoverGrid
-            profiles={profiles}
-            initialCity={city}
-            initialReligion={religion}
-            initialIntent={intent}
-          />
+          <Suspense fallback={<DiscoverGridSkeleton />}>
+            <DiscoverProfilesSection searchParams={searchParams} />
+          </Suspense>
         </div>
       </section>
     </>

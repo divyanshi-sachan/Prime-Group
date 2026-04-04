@@ -66,6 +66,7 @@ export default function ProfileCard({ data, index }: ProfileCardProps) {
             src={data.imageUrl || "/placeholder.svg"}
             alt={data.imageUrl ? data.name : "No image"}
             fill
+            loading="lazy"
             className="object-cover group-hover:scale-105 transition-transform duration-700"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
