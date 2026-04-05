@@ -71,6 +71,10 @@ function redirectAuthCallbackFailure(
   return NextResponse.redirect(`${origin}/sign-in?error=auth_callback_error`);
 }
 
+/**
+ * Server-side PKCE / OTP exchange. Invoked via full navigation from `/auth/callback` so implicit
+ * flows can use the page (hash is never sent to the server).
+ */
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const { searchParams, origin } = url;
@@ -80,7 +84,6 @@ export async function GET(request: NextRequest) {
   const nextRaw = searchParams.get("next");
   const nextForFailure = sanitizeNextPath(nextRaw);
 
-  // Redirect response must exist before exchange/verify so Set-Cookie attaches to it (Next.js route handlers).
   const redirectSuccess = NextResponse.redirect(new URL(nextForFailure, origin));
 
   const supabase = createServerClient(
@@ -140,8 +143,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/sign-in?error=auth_callback_error`);
   }
 
-  // Second open of the same link (e.g. mail app + browser): exchange fails but another request
-  // may have already set the session cookie — treat as success if user is present.
   if (authError && authCallbackFailureMayBeDuplicateHit(authError)) {
     const {
       data: { user: existingUser },
@@ -159,7 +160,6 @@ export async function GET(request: NextRequest) {
   return redirectAuthCallbackFailure(origin, nextForFailure, type, authError);
 }
 
-/** After session is established: compute `Location` via `getPostLoginRedirect`, then recovery email tagging. */
 async function completeAuthCallbackRedirect(
   redirectResponse: NextResponse,
   nextRaw: string | null,

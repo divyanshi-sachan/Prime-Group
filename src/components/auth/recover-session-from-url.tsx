@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { withPostAuthVerificationHint } from "@/lib/auth/post-auth-landing";
 import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
 
 /**
@@ -45,6 +46,7 @@ export function RecoverSessionFromUrl({ serverNext }: { serverNext?: string }) {
         sanitizeOptionalNextPath(serverNext) ??
         sanitizeOptionalNextPath(fromQuery) ??
         "/hi";
+      const destination = withPostAuthVerificationHint(next);
 
       const url = new URL(window.location.href);
       url.hash = "";
@@ -54,7 +56,7 @@ export function RecoverSessionFromUrl({ serverNext }: { serverNext?: string }) {
       const qs = qp.toString();
       window.history.replaceState(null, "", `${url.pathname}${qs ? `?${qs}` : ""}`);
 
-      router.replace(next);
+      router.replace(destination);
       router.refresh();
     })();
   }, [router, searchParams, serverNext]);
