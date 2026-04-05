@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
 import { paymentConfig, getPaymentMethodFromDb } from "@/lib/payment/config";
+import { isPaymentsComingSoon } from "@/lib/payment/payments-coming-soon";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 
@@ -14,6 +15,12 @@ export const dynamic = "force-dynamic";
  * verification (shared secret). Do not gate with member auth; see `@/lib/api-route-access`.
  */
 export async function POST(req: Request) {
+  if (isPaymentsComingSoon()) {
+    return NextResponse.json(
+      { error: "Payments are not available yet.", success: false },
+      { status: 503 }
+    );
+  }
   const supabase = createServiceRoleClient();
   const method = await getPaymentMethodFromDb(supabase);
   if (method !== "razorpay") {

@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import CheckoutHero from "@/components/checkout/checkout-hero";
+import { PaymentsComingSoonScreen } from "@/components/checkout/payments-coming-soon-screen";
+import { isPaymentsComingSoon } from "@/lib/payment/payments-coming-soon";
 import { createClient } from "@/lib/supabase/client";
 import { IndianRupee, Loader2, Coins, Sparkles, Zap, Crown, Lock } from "lucide-react";
 
@@ -242,6 +244,10 @@ function CheckoutContent() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [upiOrder]);
+
+  if (isPaymentsComingSoon()) {
+    return <PaymentsComingSoonScreen />;
+  }
 
   if (loading) {
     return (

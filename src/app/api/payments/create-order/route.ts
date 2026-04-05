@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUserWithBasicProfile } from "@/lib/api-require-basic-profile";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
 import { paymentConfig, getPaymentMethodFromDb, buildUpiUrl } from "@/lib/payment/config";
+import { isPaymentsComingSoon } from "@/lib/payment/payments-coming-soon";
 import Razorpay from "razorpay";
 import QRCode from "qrcode";
 
@@ -9,6 +10,12 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    if (isPaymentsComingSoon()) {
+      return NextResponse.json(
+        { error: "Payments are not available yet. Please check back soon." },
+        { status: 503 }
+      );
+    }
     const gate = await requireUserWithBasicProfile();
     if (!gate.ok) return gate.response;
     const { user: authUser, supabase } = gate;

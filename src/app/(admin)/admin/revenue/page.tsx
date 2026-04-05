@@ -20,7 +20,6 @@ import {
   CreditCard,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 import { cn } from "@/lib/utils";
 
 interface Plan {
@@ -61,28 +60,27 @@ export default function AdminRevenuePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const supabase = createAdminBrowserClient();
+    setFetchError(null);
     setLoading(true);
     try {
-      const [paymentsRes, plansRes, pendingUpiRes] = await Promise.all([
-        supabase
-          .from("payments")
-          .select("id, amount, plan_id, paid_at, created_at, status, payment_method")
-          .eq("status", "success"),
-        supabase.from("plans").select("id, name"),
-        supabase
-          .from("payments")
-          .select("id, amount, plan_id, created_at, payment_method")
-          .eq("status", "pending")
-          .eq("payment_method", "upi_qr"),
-      ]);
-      if (paymentsRes.error) throw paymentsRes.error;
-      setPayments((paymentsRes.data ?? []) as PaymentRow[]);
-      setPlans((plansRes.data ?? []) as Plan[]);
-      setPendingUpi((pendingUpiRes.data ?? []) as PaymentRow[]);
-    } catch {
+      const res = await fetch("/api/admin/revenue", { credentials: "include" });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        payments?: PaymentRow[];
+        plans?: Plan[];
+        pendingUpi?: PaymentRow[];
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? `Failed to load revenue (${res.status})`);
+      }
+      setPayments((json.payments ?? []) as PaymentRow[]);
+      setPlans((json.plans ?? []) as Plan[]);
+      setPendingUpi((json.pendingUpi ?? []) as PaymentRow[]);
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "Failed to load revenue.");
       setPayments([]);
       setPlans([]);
       setPendingUpi([]);
@@ -175,6 +173,12 @@ export default function AdminRevenuePage() {
           Refresh
         </Button>
       </div>
+
+      {fetchError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 font-general text-sm text-amber-800">
+          {fetchError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="rounded-xl border shadow-sm" style={cardStyle}>

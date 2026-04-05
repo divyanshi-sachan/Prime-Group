@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminApiUser } from "@/lib/api-route-access";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
+import { isPaymentsComingSoon } from "@/lib/payment/payments-coming-soon";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,12 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: Request) {
   try {
+    if (isPaymentsComingSoon()) {
+      return NextResponse.json(
+        { error: "Payments are not available yet." },
+        { status: 503 }
+      );
+    }
     const body = await req.json();
     const orderId = body?.order_id as string | undefined;
     if (!orderId) {

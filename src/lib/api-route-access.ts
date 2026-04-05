@@ -16,6 +16,7 @@
  * | GET | /api/admin/plans | admin | `requireAdminService()` |
  * | PATCH | /api/admin/plans/[id] | admin | `requireAdminService()` |
  * | GET | /api/admin/dashboard-stats | admin | `requireAdminService()` |
+ * | GET | /api/admin/revenue | admin | `requireAdminService()` (service-role payment reads; matches dashboard) |
  * | GET,POST | /api/admin/faqs | admin | `requireAdminService()` |
  * | PATCH,DELETE | /api/admin/faqs/[id] | admin | `requireAdminService()` |
  * | GET | /api/credits/balance | member_onboarded | `requireUserWithBasicProfile()` |

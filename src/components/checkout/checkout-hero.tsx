@@ -42,9 +42,11 @@ function HeroParticles({ visible }: { visible: boolean }) {
 
 interface CheckoutHeroProps {
   subtitle?: string
+  /** When set, replaces the default “Buy credits” headline. */
+  heroTitle?: string
 }
 
-export default function CheckoutHero({ subtitle }: CheckoutHeroProps) {
+export default function CheckoutHero({ subtitle, heroTitle }: CheckoutHeroProps) {
   const reduceMotion = useReducedMotion()
   const [particlesOn, setParticlesOn] = useState(false)
   const { credits, loading: creditsLoading, refreshCredits } = useCredits()
@@ -90,8 +92,14 @@ export default function CheckoutHero({ subtitle }: CheckoutHeroProps) {
             id="checkout-hero-heading"
             className="font-playfair-display font-black text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl leading-[1.1] sm:leading-[1.08] tracking-tight"
           >
-            Buy{" "}
-            <span className="text-gold-gradient bg-clip-text text-transparent">credits</span>
+            {heroTitle ? (
+              heroTitle
+            ) : (
+              <>
+                Buy{" "}
+                <span className="text-gold-gradient bg-clip-text text-transparent">credits</span>
+              </>
+            )}
           </h1>
           <p className="mt-4 text-base sm:text-lg text-white/75 font-general font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
             {subtitle ??
