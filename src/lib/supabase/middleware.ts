@@ -43,6 +43,29 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // If Supabase redirect allowlist points at /sign-in (or Site URL + path), PKCE `code` lands here
+  // and never reaches the exchange handler — forward to /auth/callback.
+  if (pathname === "/sign-in" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/sign-in" && request.nextUrl.searchParams.has("token_hash")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/sign-up" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/sign-up" && request.nextUrl.searchParams.has("token_hash")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   // Page routes only: `/api/*` is not gated here — each handler enforces access (see @/lib/api-route-access).
   const isProtected = isProtectedMemberPath(pathname);
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/auth-form";
+import { RecoverSessionFromUrl } from "@/components/auth/recover-session-from-url";
 import { authFormAccentLinkClass, authHeroAccentLinkClass } from "@/components/auth/auth-accent-link";
 import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
 
@@ -124,8 +126,10 @@ export default async function SignInPage({
 
             {showAuthCallbackError && (
               <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-800 text-sm font-general border border-red-200/80" role="alert">
-                Something went wrong completing sign-in. Please try again, or request a new link from the sign-up or
-                password reset email.
+                We couldn&apos;t finish sign-in from that link (it may be expired or already used). Try again from a
+                new email, or sign in with your password. If you still see tokens in the address bar (
+                <span className="font-mono text-[11px]">#access_token=</span>), this page will attempt to complete
+                sign-in automatically.
               </div>
             )}
 
@@ -156,6 +160,10 @@ export default async function SignInPage({
                 again or create a new account.
               </div>
             )}
+
+            <Suspense fallback={null}>
+              <RecoverSessionFromUrl serverNext={next} />
+            </Suspense>
 
             <AuthForm mode="sign-in" hideTitle submitLabel="Sign in" className="max-w-none" next={next} />
 
