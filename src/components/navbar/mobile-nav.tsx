@@ -53,7 +53,9 @@ export default function MobileNav() {
 
           <nav className="flex flex-col gap-4">
             <Link href="/" prefetch className="flex items-center" onClick={handleLinkClick}>
-              <span className="text-lg sm:text-xl font-bold">Prime Group</span>
+              <span className="font-harvey-serif text-xl sm:text-2xl font-semibold tracking-[0.12em] uppercase">
+                Prime Group
+              </span>
             </Link>
             <Separator className="my-2" />
             <Link href="/" prefetch className="block py-2 text-lg font-semibold" onClick={handleLinkClick}>

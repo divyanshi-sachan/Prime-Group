@@ -38,6 +38,12 @@ export default {
   				'Georgia',
   				'serif'
   			],
+  			'harvey-serif': [
+  				'var(--font-harvey-serif)',
+  				'Cormorant Garamond',
+  				'Georgia',
+  				'serif'
+  			],
   			montserrat: [
   				'General Sans',
   				'system-ui',

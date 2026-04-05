@@ -99,8 +99,8 @@ export default function MainNav() {
       }}
     >
       <header className="z-50 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="relative flex h-[4.25rem] items-center">
-          <div className="flex items-center flex-shrink-0 min-w-[180px] sm:min-w-[220px] z-10">
+        <div className="relative flex min-h-[4.25rem] h-[4.5rem] sm:h-[4.75rem] items-center">
+          <div className="flex items-center flex-shrink-0 min-w-[180px] sm:min-w-[240px] lg:min-w-[270px] z-10">
             <MobileNav />
             <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
               <Image
@@ -111,7 +111,7 @@ export default function MainNav() {
                 height={56}
                 className="object-contain group-hover:scale-105 transition-transform duration-300 h-12 w-12 sm:h-14 sm:w-14"
               />
-              <span className="hidden sm:block font-playfair-display text-base sm:text-lg font-black text-gold-gradient group-hover:opacity-90 transition-opacity uppercase tracking-[0.12em]">
+              <span className="hidden sm:block font-harvey-serif text-xl sm:text-2xl md:text-[1.85rem] lg:text-[2rem] font-semibold text-gold-gradient group-hover:opacity-90 transition-opacity uppercase tracking-[0.14em] leading-none">
                 Prime Group
               </span>
             </Link>

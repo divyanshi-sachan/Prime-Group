@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Cormorant_Garamond } from "next/font/google";
 import "@/styles/globals.css";
 import { getSiteUrl } from "@/lib/site";
 import { AuthCrossTabSync } from "@/components/providers/auth-cross-tab-sync";
@@ -19,6 +20,13 @@ const albertSans = localFont({
   src: "./fonts/AlbertSans.woff",
   variable: "--font-albert-sans",
   weight: "100 200 300 400 500 600 700 800 900",
+});
+
+const harveySerif = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-harvey-serif",
+  display: "swap",
 });
 
 const siteUrl = getSiteUrl();
@@ -99,7 +107,9 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${albertSans.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${albertSans.variable} ${harveySerif.variable} antialiased`}
+      >
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

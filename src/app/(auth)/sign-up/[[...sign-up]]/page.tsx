@@ -28,9 +28,12 @@ export default function SignUpPage() {
           />
           <div className="absolute inset-0 z-[1] bg-black/50" aria-hidden />
           <div className="space-y-6 relative z-10">
-            <div className="inline-flex items-center rounded-xl bg-white/95 px-4 py-2.5 shadow-sm border border-white/40 backdrop-blur-sm">
-              <p className="text-xs font-bold tracking-wider uppercase" style={{ color: "var(--primary-blue)" }}>
-                PRIME GROUP
+            <div className="inline-flex items-center rounded-xl bg-white/95 px-5 py-3 sm:px-6 sm:py-3.5 shadow-md border border-white/50 backdrop-blur-sm">
+              <p
+                className="font-harvey-serif text-sm sm:text-base md:text-lg font-semibold uppercase tracking-[0.14em] leading-none"
+                style={{ color: "var(--primary-blue)" }}
+              >
+                Prime Group
               </p>
             </div>
             <div className="space-y-2">
@@ -58,8 +61,11 @@ export default function SignUpPage() {
         <div className="flex items-center justify-center px-6 py-10 sm:px-10 bg-white">
           <div className="w-full max-w-md">
             <div className="md:hidden mb-6 pb-4 border-b border-gray-200/80 text-center">
-              <p className="text-xs font-bold tracking-wider uppercase" style={{ color: "var(--primary-blue)" }}>
-                PRIME GROUP
+              <p
+                className="font-harvey-serif text-lg font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "var(--primary-blue)" }}
+              >
+                Prime Group
               </p>
             </div>
 
