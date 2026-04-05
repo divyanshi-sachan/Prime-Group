@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { withPostAuthVerificationHint } from "@/lib/auth/post-auth-landing";
-import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
+import { sanitizeOptionalNextPathForAuthCallback } from "@/lib/safe-next-path";
 
 /**
  * Supabase email links must redirect to `/auth/callback` with `?code=` (PKCE). If the dashboard
@@ -13,7 +13,6 @@ import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
  * This client pass applies tokens from the hash and sends users to a safe `next` path.
  */
 export function RecoverSessionFromUrl({ serverNext }: { serverNext?: string }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const ran = useRef(false);
 
@@ -43,8 +42,8 @@ export function RecoverSessionFromUrl({ serverNext }: { serverNext?: string }) {
 
       const fromQuery = searchParams.get("next") ?? undefined;
       const next =
-        sanitizeOptionalNextPath(serverNext) ??
-        sanitizeOptionalNextPath(fromQuery) ??
+        sanitizeOptionalNextPathForAuthCallback(serverNext) ??
+        sanitizeOptionalNextPathForAuthCallback(fromQuery) ??
         "/hi";
       const destination = withPostAuthVerificationHint(next);
 
@@ -56,10 +55,9 @@ export function RecoverSessionFromUrl({ serverNext }: { serverNext?: string }) {
       const qs = qp.toString();
       window.history.replaceState(null, "", `${url.pathname}${qs ? `?${qs}` : ""}`);
 
-      router.replace(destination);
-      router.refresh();
+      window.location.assign(new URL(destination, window.location.origin).href);
     })();
-  }, [router, searchParams, serverNext]);
+  }, [searchParams, serverNext]);
 
   return null;
 }

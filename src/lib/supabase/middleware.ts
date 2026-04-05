@@ -24,7 +24,12 @@ export async function updateSession(request: NextRequest) {
 
   // Callback exchanges code / verifies OTP and sets cookies on the redirect response; this request
   // still has the old cookie state. Never treat it as unauthenticated (avoids loops / auth_callback_error).
-  if (pathname === "/auth/callback" || pathname.startsWith("/auth/callback/")) {
+  if (pathname.startsWith("/auth/callback/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/auth/callback") {
     return NextResponse.next();
   }
 

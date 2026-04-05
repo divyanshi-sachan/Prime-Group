@@ -3,6 +3,8 @@
  * double-encoded `//`, backslashes, and oversized values (header / abuse).
  */
 
+import { pathnameOnly } from "@/lib/auth/post-auth-landing";
+
 const MAX_SAFE_NEXT_LENGTH = 200;
 /** Encoded payloads can be longer than the decoded path; cap work and size. */
 const MAX_RAW_INPUT_LENGTH = 600;
@@ -55,4 +57,20 @@ export function sanitizeNextPath(next: string | null | undefined): string {
 /** For optional `next` query props — invalid values become `undefined`. */
 export function sanitizeOptionalNextPath(next: string | null | undefined): string | undefined {
   return trySanitizeNextPath(next);
+}
+
+/**
+ * Same as {@link sanitizeOptionalNextPath}, but rejects `/auth/callback` targets so email-link
+ * `next` cannot resolve to nested paths like `/auth/callback/hi` (App Router relative navigation bug).
+ */
+export function sanitizeOptionalNextPathForAuthCallback(
+  next: string | null | undefined
+): string | undefined {
+  const s = trySanitizeNextPath(next);
+  if (!s) return undefined;
+  const base = pathnameOnly(s);
+  if (base === "/auth/callback" || base.startsWith("/auth/callback/")) {
+    return undefined;
+  }
+  return s;
 }

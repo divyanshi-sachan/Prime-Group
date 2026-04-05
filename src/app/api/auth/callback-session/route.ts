@@ -11,7 +11,10 @@ import {
 } from "@/lib/auth/auth-callback-errors";
 import { pathnameOnly, withPostAuthVerificationHint } from "@/lib/auth/post-auth-landing";
 import { getPostLoginRedirect } from "@/lib/post-login-redirect";
-import { sanitizeNextPath } from "@/lib/safe-next-path";
+import {
+  sanitizeNextPath,
+  sanitizeOptionalNextPathForAuthCallback,
+} from "@/lib/safe-next-path";
 import { MEMBER_AUTH_STORAGE_KEY } from "@/lib/supabase/member-session";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -35,12 +38,12 @@ async function finalizeAuthSuccessRedirect(
 }
 
 function isPasswordResetCallback(next: string, type: EmailOtpType | null): boolean {
-  return next === "/reset-password" || type === "recovery";
+  return pathnameOnly(next) === "/reset-password" || type === "recovery";
 }
 
 /** Sign-up confirmation emails use `next=/hi` (see AuthForm / useAuth). */
 function isSignupEmailVerificationCallback(next: string): boolean {
-  return next === "/hi";
+  return pathnameOnly(next) === "/hi";
 }
 
 function redirectAuthCallbackFailure(
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const nextRaw = searchParams.get("next");
-  const nextForFailure = sanitizeNextPath(nextRaw);
+  const nextForFailure = sanitizeNextPath(sanitizeOptionalNextPathForAuthCallback(nextRaw));
 
   const redirectSuccess = NextResponse.redirect(new URL(nextForFailure, origin));
 
@@ -180,8 +183,9 @@ async function completeAuthCallbackRedirect(
     .eq("user_id", user.id)
     .maybeSingle();
 
+  const safeNext = sanitizeOptionalNextPathForAuthCallback(nextRaw);
   const destination = withPostAuthVerificationHint(
-    getPostLoginRedirect(user, { next: nextRaw, basicProfile: profile })
+    getPostLoginRedirect(user, { next: safeNext ?? null, basicProfile: profile })
   );
   redirectResponse.headers.set("Location", new URL(destination, origin).toString());
   return finalizeAuthSuccessRedirect(redirectResponse, destination, origin, supabase);

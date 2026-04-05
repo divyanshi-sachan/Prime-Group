@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { withPostAuthVerificationHint } from "@/lib/auth/post-auth-landing";
-import { sanitizeOptionalNextPath } from "@/lib/safe-next-path";
+import {
+  sanitizeOptionalNextPathForAuthCallback,
+} from "@/lib/safe-next-path";
 import { Spinner } from "@/components/ui/spinner";
 
 const CALLBACK_SESSION_API = "/api/auth/callback-session";
@@ -14,7 +16,6 @@ const CALLBACK_SESSION_API = "/api/auth/callback-session";
  * server, so this client gate runs first: recover hash sessions here, then full-navigate for code.
  */
 export function AuthCallbackClient() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const ran = useRef(false);
 
@@ -39,7 +40,9 @@ export function AuthCallbackClient() {
         const access_token = params.get("access_token");
         const refresh_token = params.get("refresh_token");
         if (!access_token || !refresh_token) {
-          router.replace("/sign-in?error=auth_callback_error");
+          window.location.replace(
+            new URL("/sign-in?error=auth_callback_error", window.location.origin).href
+          );
           return;
         }
         const supabase = createClient();
@@ -49,23 +52,27 @@ export function AuthCallbackClient() {
         });
         if (error) {
           ran.current = false;
-          router.replace("/sign-in?error=auth_callback_error");
+          window.location.replace(
+            new URL("/sign-in?error=auth_callback_error", window.location.origin).href
+          );
           return;
         }
         const nextRaw = searchParams.get("next");
-        const next = sanitizeOptionalNextPath(nextRaw) ?? "/hi";
+        const next = sanitizeOptionalNextPathForAuthCallback(nextRaw) ?? "/hi";
         const destination = withPostAuthVerificationHint(next);
         const cleanUrl = `${window.location.pathname}${window.location.search}`;
         window.history.replaceState(null, "", cleanUrl);
-        router.replace(destination);
-        router.refresh();
+        // Full URL — App Router `router.replace("hi?…")` resolves relative to `/auth/callback` and breaks.
+        window.location.assign(new URL(destination, window.location.origin).href);
       })();
       return;
     }
 
     ran.current = true;
-    router.replace("/sign-in?error=auth_callback_error");
-  }, [router, searchParams]);
+    window.location.replace(
+      new URL("/sign-in?error=auth_callback_error", window.location.origin).href
+    );
+  }, [searchParams]);
 
   return (
     <div className="relative min-h-[50vh] flex flex-col items-center justify-center gap-4 px-4">

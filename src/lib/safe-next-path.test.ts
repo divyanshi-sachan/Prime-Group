@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeNextPath, sanitizeOptionalNextPath } from "./safe-next-path";
+import {
+  sanitizeNextPath,
+  sanitizeOptionalNextPath,
+  sanitizeOptionalNextPathForAuthCallback,
+} from "./safe-next-path";
 
 describe("sanitizeNextPath", () => {
   it("allows normal internal paths", () => {
@@ -36,5 +40,18 @@ describe("sanitizeNextPath", () => {
   it("optional helper returns undefined for bad input", () => {
     expect(sanitizeOptionalNextPath(undefined)).toBeUndefined();
     expect(sanitizeOptionalNextPath("//x")).toBeUndefined();
+  });
+});
+
+describe("sanitizeOptionalNextPathForAuthCallback", () => {
+  it("allows normal targets", () => {
+    expect(sanitizeOptionalNextPathForAuthCallback("/hi")).toBe("/hi");
+    expect(sanitizeOptionalNextPathForAuthCallback("/discover")).toBe("/discover");
+  });
+
+  it("rejects auth callback paths that break client navigation", () => {
+    expect(sanitizeOptionalNextPathForAuthCallback("/auth/callback")).toBeUndefined();
+    expect(sanitizeOptionalNextPathForAuthCallback("/auth/callback/hi")).toBeUndefined();
+    expect(sanitizeOptionalNextPathForAuthCallback("/auth/callback/hi/next")).toBeUndefined();
   });
 });
