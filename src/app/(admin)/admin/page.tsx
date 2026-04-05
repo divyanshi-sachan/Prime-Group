@@ -18,7 +18,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 import { Spinner } from "@/components/ui/spinner";
 
 interface RevenueRow {
@@ -63,92 +62,38 @@ export default function AdminDashboardPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchStats = async () => {
-    const supabase = createAdminBrowserClient();
     setFetchError(null);
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     try {
-      const [usersRes, profilesRes, paymentsRes, plansRes, usersLast7Res, profilesLast7Res] = await Promise.all([
-        supabase.from("users").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("id, profile_status, gender, religion, city"),
-        supabase.from("payments").select("amount, paid_at, plan_id, created_at").eq("status", "success"),
-        supabase.from("plans").select("id, name"),
-        supabase.from("users").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-      ]);
-      const profiles = profilesRes.data ?? [];
-      const payments = paymentsRes.data ?? [];
-      const plansData = (plansRes as { data?: PlanRow[]; error?: unknown }).error ? [] : ((plansRes as { data?: PlanRow[] }).data ?? []);
-      setPlans(plansData);
-
-      const totalProfiles = profiles.length;
-      const pendingProfiles = profiles.filter((p) => p.profile_status === "pending").length;
-      const activeProfiles = profiles.filter((p) => p.profile_status === "active").length;
-      setStats({
-        totalUsers: usersRes.count ?? 0,
-        totalProfiles,
-        pendingProfiles,
-        activeProfiles,
-        newUsersLast7: usersLast7Res.count ?? 0,
-        newProfilesLast7: profilesLast7Res.count ?? 0,
-      });
-
-      const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
-      const now = new Date();
-      const thisMonth = payments.filter((p) => {
-        const dateStr = (p as { paid_at?: string }).paid_at || (p as { created_at?: string }).created_at;
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }).reduce((s, p) => s + (p.amount || 0), 0);
-      const byPlanMap = new Map<string | null, number>();
-      payments.forEach((p) => {
-        const key = p.plan_id ?? null;
-        byPlanMap.set(key, (byPlanMap.get(key) ?? 0) + (p.amount || 0));
-      });
-      setRevenue({
-        total: totalRevenue,
-        thisMonth,
-        byPlan: Array.from(byPlanMap.entries()).map(([plan_id, sum]) => ({ plan_id, sum })),
-      });
-
-      const toPct = (n: number) => (totalProfiles ? Math.round((n / totalProfiles) * 100) : 0);
-      const genderCounts = Object.entries(
-        profiles.reduce<Record<string, number>>((acc, p) => {
-          const g = p.gender || "other";
-          acc[g] = (acc[g] ?? 0) + 1;
-          return acc;
-        }, {})
-      ).map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), count, pct: toPct(count) }));
-      setByGender(genderCounts.sort((a, b) => b.count - a.count));
-
-      const religionCounts = Object.entries(
-        profiles.reduce<Record<string, number>>((acc, p) => {
-          const r = p.religion || "Not specified";
-          acc[r] = (acc[r] ?? 0) + 1;
-          return acc;
-        }, {})
-      ).map(([name, count]) => ({ name, count, pct: toPct(count) }));
-      setByReligion(religionCounts.sort((a, b) => b.count - a.count).slice(0, 8));
-
-      setByStatus([
-        { name: "Pending", count: pendingProfiles, pct: toPct(pendingProfiles) },
-        { name: "Active", count: activeProfiles, pct: toPct(activeProfiles) },
-        { name: "Rejected", count: profiles.filter((p) => p.profile_status === "rejected").length, pct: toPct(profiles.filter((p) => p.profile_status === "rejected").length) },
-        { name: "Suspended", count: profiles.filter((p) => p.profile_status === "suspended").length, pct: toPct(profiles.filter((p) => p.profile_status === "suspended").length) },
-      ].filter((s) => s.count > 0));
-
-      const cityCounts = Object.entries(
-        profiles.reduce<Record<string, number>>((acc, p) => {
-          const c = p.city?.trim() || "Not specified";
-          acc[c] = (acc[c] ?? 0) + 1;
-          return acc;
-        }, {})
-      ).map(([name, count]) => ({ name, count, pct: toPct(count) }));
-      setByCity(cityCounts.sort((a, b) => b.count - a.count).slice(0, 6));
+      const res = await fetch("/api/admin/dashboard-stats", { credentials: "include" });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        stats?: typeof stats;
+        revenue?: RevenueRow;
+        plans?: PlanRow[];
+        byGender?: CategoryCount[];
+        byReligion?: CategoryCount[];
+        byStatus?: CategoryCount[];
+        byCity?: CategoryCount[];
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? `Failed to load dashboard (${res.status})`);
+      }
+      if (json.stats) setStats(json.stats);
+      if (json.revenue) setRevenue(json.revenue);
+      setPlans(json.plans ?? []);
+      setByGender(json.byGender ?? []);
+      setByReligion(json.byReligion ?? []);
+      setByStatus(json.byStatus ?? []);
+      setByCity(json.byCity ?? []);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : "Failed to load dashboard data.");
       setStats({ totalUsers: 0, totalProfiles: 0, pendingProfiles: 0, activeProfiles: 0, newUsersLast7: 0, newProfilesLast7: 0 });
       setRevenue({ total: 0, thisMonth: 0, byPlan: [] });
+      setPlans([]);
+      setByGender([]);
+      setByReligion([]);
+      setByStatus([]);
+      setByCity([]);
     } finally {
       setLastUpdated(new Date());
       setLoading(false);
@@ -162,7 +107,7 @@ export default function AdminDashboardPage() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchStats();
+    void fetchStats();
   };
 
   const cardStyle = {

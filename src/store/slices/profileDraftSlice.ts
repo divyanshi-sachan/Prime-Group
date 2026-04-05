@@ -9,7 +9,11 @@ export interface Step1Data {
   school: string;
   college_university: string;
   highest_education: string;
+  field_of_study: string;
+  employed_in: string;
+  occupation: string;
   organization: string;
+  annual_income: string;
   birthplace: string;
   height_cm: string;
   complexion: string;
@@ -25,7 +29,8 @@ export interface Step2Data {
   siblings_brothers: string;
   siblings_sisters: string;
   siblings_notes: string;
-  contact_address: string;
+  permanent_address: string;
+  current_address: string;
   contact_number: string;
   country: string;
   state: string;

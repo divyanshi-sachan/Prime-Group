@@ -110,31 +110,32 @@ export async function POST(req: Request) {
 async function getContactInfo(supabase: SupabaseServerClient, profileId: string) {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("contact_number, contact_address")
+    .select("user_id, contact_number, permanent_address, current_address")
     .eq("id", profileId)
     .single();
 
-  // Get the user's email from the users table via the profile's user_id
-  const { data: profileRow } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .eq("id", profileId)
-    .single();
+  const row = profile as {
+    user_id?: string;
+    contact_number?: string | null;
+    permanent_address?: string | null;
+    current_address?: string | null;
+  } | null;
 
   let email: string | null = null;
-  if (profileRow?.user_id) {
+  if (row?.user_id) {
     const serviceSupabase = createServiceRoleClient();
     const { data: userRow } = await serviceSupabase
       .from("users")
       .select("email")
-      .eq("id", profileRow.user_id)
+      .eq("id", row.user_id)
       .single();
     email = (userRow as { email?: string } | null)?.email ?? null;
   }
 
   return {
-    contact_number: (profile as { contact_number?: string } | null)?.contact_number ?? null,
-    contact_address: (profile as { contact_address?: string } | null)?.contact_address ?? null,
+    contact_number: row?.contact_number ?? null,
+    permanent_address: row?.permanent_address ?? null,
+    current_address: row?.current_address ?? null,
     email,
   };
 }

@@ -66,15 +66,13 @@ function buildDefaultValues(
     field_of_study: profile.field_of_study ?? "",
     occupation: profile.occupation ?? "",
     organization: profile.organization ?? "",
+    annual_income: profile.annual_income ?? undefined,
     about_me: profile.about_me ?? "",
     father_name: profile.father_name ?? "",
     father_occupation: profile.father_occupation ?? "",
     mother_name: profile.mother_name ?? "",
     mother_occupation: profile.mother_occupation ?? "",
     siblings_count: profile.siblings_count ?? undefined,
-    family_type: profile.family_type ?? "",
-    family_values: profile.family_values ?? "",
-    family_status: profile.family_status ?? "",
     age_min: preferences?.age_min ?? undefined,
     age_max: preferences?.age_max ?? undefined,
     additional_notes: preferences?.additional_notes ?? "",
@@ -82,7 +80,8 @@ function buildDefaultValues(
     is_visible: profile.is_visible ?? true,
     admin_notes: profile.admin_notes ?? "",
     contact_number: profile.contact_number ?? "",
-    contact_address: profile.contact_address ?? "",
+    permanent_address: profile.permanent_address ?? "",
+    current_address: profile.current_address ?? "",
     verification_status: profile.verification_status ?? "unverified",
     gotra: profile.gotra ?? "",
     birthplace: profile.birthplace ?? "",
@@ -155,15 +154,15 @@ export function EditProfileForm({
         field_of_study: data.field_of_study || null,
         occupation: data.occupation || null,
         organization: data.organization || null,
+        annual_income: data.annual_income ?? null,
         about_me: data.about_me || null,
         father_name: data.father_name || null,
         father_occupation: data.father_occupation || null,
         mother_name: data.mother_name || null,
         mother_occupation: data.mother_occupation || null,
         siblings_count: data.siblings_count ?? null,
-        family_type: data.family_type || null,
-        family_values: data.family_values || null,
-        family_status: data.family_status || null,
+        permanent_address: data.permanent_address || null,
+        current_address: data.current_address || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -288,8 +287,12 @@ export function EditProfileForm({
               <Input id="contact_number" {...form.register("contact_number")} />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="contact_address">Contact address</Label>
-              <Input id="contact_address" {...form.register("contact_address")} />
+              <Label htmlFor="permanent_address">Permanent address</Label>
+              <Input id="permanent_address" {...form.register("permanent_address")} placeholder="Native / permanent address" />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="current_address">Current address</Label>
+              <Input id="current_address" {...form.register("current_address")} placeholder="If different from permanent" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gotra">Gotra</Label>
@@ -438,6 +441,26 @@ export function EditProfileForm({
             <Label htmlFor="city">City</Label>
             <Input id="city" {...form.register("city")} />
           </div>
+          {!isAdmin && (
+            <>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="user_permanent_address">Permanent address</Label>
+                <Input
+                  id="user_permanent_address"
+                  {...form.register("permanent_address")}
+                  placeholder="Native / permanent address"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="user_current_address">Current address</Label>
+                <Input
+                  id="user_current_address"
+                  {...form.register("current_address")}
+                  placeholder="If different from permanent"
+                />
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label>Willing to relocate?</Label>
             <Select onValueChange={(v) => form.setValue("willing_to_relocate", v)} value={form.watch("willing_to_relocate")}>
@@ -476,6 +499,10 @@ export function EditProfileForm({
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="organization">Organization</Label>
             <Input id="organization" {...form.register("organization")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="annual_income">Annual income (INR)</Label>
+            <Input id="annual_income" type="number" min={0} step={1} {...form.register("annual_income")} placeholder="Optional" />
           </div>
         </div>
       </div>
@@ -521,10 +548,6 @@ export function EditProfileForm({
           <div className="space-y-2">
             <Label htmlFor="siblings_count">Number of siblings</Label>
             <Input id="siblings_count" type="number" min={0} {...form.register("siblings_count")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="family_type">Family type</Label>
-            <Input id="family_type" {...form.register("family_type")} placeholder="e.g. Joint" />
           </div>
         </div>
       </div>

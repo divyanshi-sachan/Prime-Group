@@ -17,6 +17,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  IndianRupee,
 } from "lucide-react";
 import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ export interface ProfileRecord {
   field_of_study?: string | null;
   occupation: string | null;
   organization: string | null;
+  annual_income?: number | null;
   profile_status: string;
   verification_status: string;
   profile_completion_pct: number | null;
@@ -78,14 +80,12 @@ export interface ProfileRecord {
   siblings_brothers?: number | null;
   siblings_sisters?: number | null;
   siblings_notes?: string | null;
-  family_type?: string | null;
-  family_values?: string | null;
-  family_status?: string | null;
   birthplace?: string | null;
   birth_time?: string | null;
   complexion?: string | null;
   gotra?: string | null;
-  contact_address?: string | null;
+  permanent_address?: string | null;
+  current_address?: string | null;
   contact_number?: string | null;
   email?: string | null;
   willing_to_relocate?: string | null;
@@ -115,6 +115,14 @@ function formatAge(dob: string): number {
   const m = today.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
   return age;
+}
+
+function formatAnnualIncomeInr(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 const cardStyle = {
@@ -233,7 +241,8 @@ export function ProfileView({
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlockedContact, setUnlockedContact] = useState<{
     contact_number?: string | null;
-    contact_address?: string | null;
+    permanent_address?: string | null;
+    current_address?: string | null;
     email?: string | null;
   } | null>(null);
 
@@ -277,7 +286,8 @@ export function ProfileView({
       setIsUnlocked(true);
       setUnlockedContact({
         contact_number: data.contact_number,
-        contact_address: data.contact_address,
+        permanent_address: data.permanent_address,
+        current_address: data.current_address,
         email: data.email,
       });
       if (!data.already_unlocked) {
@@ -375,6 +385,12 @@ export function ProfileView({
                   : profile.organization || profile.occupation}
               </span>
             )}
+            {typeof profile.annual_income === "number" && profile.annual_income > 0 && (
+              <span className="flex items-center gap-2 shrink-0" title="Annual income">
+                <IndianRupee className="w-5 h-5 text-[var(--accent-gold)]" aria-hidden />
+                {formatAnnualIncomeInr(profile.annual_income)} / yr
+              </span>
+            )}
           </div>
 
           {isOwnProfile && (
@@ -420,10 +436,20 @@ export function ProfileView({
                     {profile.contact_number}
                   </div>
                 )}
-                {profile.contact_address && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)]">
-                    <Home className="w-4 h-4 text-[var(--accent-gold)]" />
-                    {profile.contact_address}
+                {profile.permanent_address && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)] max-w-full">
+                    <Home className="w-4 h-4 shrink-0 text-[var(--accent-gold)]" />
+                    <span className="truncate" title={profile.permanent_address}>
+                      Permanent: {profile.permanent_address}
+                    </span>
+                  </div>
+                )}
+                {profile.current_address && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)] max-w-full">
+                    <Home className="w-4 h-4 shrink-0 text-[var(--accent-gold)]" />
+                    <span className="truncate" title={profile.current_address}>
+                      Current: {profile.current_address}
+                    </span>
                   </div>
                 )}
                 {profile.email && (
@@ -442,10 +468,20 @@ export function ProfileView({
                     {unlockedContact?.contact_number || profile.contact_number}
                   </div>
                 )}
-                {(unlockedContact?.contact_address || profile.contact_address) && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-green-200 bg-green-50/60 text-sm font-semibold text-green-800">
-                    <Home className="w-4 h-4 text-green-600" />
-                    {unlockedContact?.contact_address || profile.contact_address}
+                {(unlockedContact?.permanent_address ?? profile.permanent_address) && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-green-200 bg-green-50/60 text-sm font-semibold text-green-800 max-w-full">
+                    <Home className="w-4 h-4 shrink-0 text-green-600" />
+                    <span className="truncate" title={unlockedContact?.permanent_address ?? profile.permanent_address ?? ""}>
+                      Permanent: {unlockedContact?.permanent_address ?? profile.permanent_address}
+                    </span>
+                  </div>
+                )}
+                {(unlockedContact?.current_address ?? profile.current_address) && (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-green-200 bg-green-50/60 text-sm font-semibold text-green-800 max-w-full">
+                    <Home className="w-4 h-4 shrink-0 text-green-600" />
+                    <span className="truncate" title={unlockedContact?.current_address ?? profile.current_address ?? ""}>
+                      Current: {unlockedContact?.current_address ?? profile.current_address}
+                    </span>
                   </div>
                 )}
                 {unlockedContact?.email && (
@@ -612,7 +648,7 @@ export function ProfileView({
 
         {/* Right Column */}
         <div className="space-y-6 sm:space-y-8">
-          {(profile.father_name || profile.mother_name || profile.has_siblings || profile.siblings_brothers != null || profile.siblings_sisters != null || profile.siblings_count != null || profile.family_type || profile.family_values) && (
+          {(profile.father_name || profile.mother_name || profile.has_siblings || profile.siblings_brothers != null || profile.siblings_sisters != null || profile.siblings_count != null) && (
               <Section title="Family Background" icon={Users} visible>
                 <div className="space-y-5">
                   {profile.father_name && (
@@ -632,14 +668,6 @@ export function ProfileView({
                     </p>
                   )}
                   {profile.siblings_notes && <p className="opacity-90">{profile.siblings_notes}</p>}
-                  {(profile.family_type || profile.family_values || profile.family_status) && (
-                    <div className="pt-3">
-                       <span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">About Family</span>
-                      <p className="font-medium text-[15px]">
-                        {[profile.family_type, profile.family_values, profile.family_status].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </Section>
             )}

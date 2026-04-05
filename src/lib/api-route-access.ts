@@ -15,6 +15,9 @@
  * | * | /api/admin/* (except fixed-login) | admin | Admin cookie session + `users.role` via service role |
  * | GET | /api/admin/plans | admin | `requireAdminService()` |
  * | PATCH | /api/admin/plans/[id] | admin | `requireAdminService()` |
+ * | GET | /api/admin/dashboard-stats | admin | `requireAdminService()` |
+ * | GET,POST | /api/admin/faqs | admin | `requireAdminService()` |
+ * | PATCH,DELETE | /api/admin/faqs/[id] | admin | `requireAdminService()` |
  * | GET | /api/credits/balance | member_onboarded | `requireUserWithBasicProfile()` |
  * | POST | /api/credits/unlock | member_onboarded | `requireUserWithBasicProfile()` |
  * | POST | /api/payments/create-order | member_onboarded | `requireUserWithBasicProfile()` |

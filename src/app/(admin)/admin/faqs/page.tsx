@@ -22,13 +22,17 @@ import {
 } from "@/components/ui/table";
 import { HelpCircle, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { createAdminBrowserClient } from "@/lib/supabase/client-admin";
 
 interface FaqRow {
   id: string;
   question: string;
   answer: string;
   sort_order: number;
+}
+
+async function parseError(res: Response): Promise<string> {
+  const j = (await res.json().catch(() => ({}))) as { error?: string };
+  return j.error ?? `Request failed (${res.status})`;
 }
 
 export default function AdminFaqsPage() {
@@ -39,32 +43,38 @@ export default function AdminFaqsPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const fetchFaqs = async () => {
-    const supabase = createAdminBrowserClient();
     setLoading(true);
+    setPageError(null);
     try {
-      const { data, error } = await supabase
-        .from("faqs")
-        .select("id, question, answer, sort_order")
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      setFaqs((data as FaqRow[]) ?? []);
+      const res = await fetch("/api/admin/faqs", { credentials: "include" });
+      const data = (await res.json().catch(() => ({}))) as { faqs?: FaqRow[]; error?: string };
+      if (!res.ok) {
+        setPageError(data.error ?? (await parseError(res)));
+        setFaqs([]);
+        return;
+      }
+      setFaqs(data.faqs ?? []);
     } catch {
       setFaqs([]);
+      setPageError("Could not load FAQs.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFaqs();
+    void fetchFaqs();
   }, []);
 
   const openCreate = () => {
     setEditingId(null);
     setQuestion("");
     setAnswer("");
+    setDialogError(null);
     setOpen(true);
   };
 
@@ -72,31 +82,42 @@ export default function AdminFaqsPage() {
     setEditingId(row.id);
     setQuestion(row.question);
     setAnswer(row.answer);
+    setDialogError(null);
     setOpen(true);
   };
 
   const handleSave = async () => {
     if (!question.trim() || !answer.trim()) return;
     setSaving(true);
-    const supabase = createAdminBrowserClient();
+    setDialogError(null);
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from("faqs")
-          .update({ question: question.trim(), answer: answer.trim(), updated_at: new Date().toISOString() })
-          .eq("id", editingId);
-        if (error) throw error;
+        const res = await fetch(`/api/admin/faqs/${editingId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: question.trim(), answer: answer.trim() }),
+        });
+        if (!res.ok) {
+          setDialogError(await parseError(res));
+          return;
+        }
       } else {
-        const maxOrder = faqs.length ? Math.max(...faqs.map((f) => f.sort_order), 0) : 0;
-        const { error } = await supabase
-          .from("faqs")
-          .insert({ question: question.trim(), answer: answer.trim(), sort_order: maxOrder + 1 });
-        if (error) throw error;
+        const res = await fetch("/api/admin/faqs", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: question.trim(), answer: answer.trim() }),
+        });
+        if (!res.ok) {
+          setDialogError(await parseError(res));
+          return;
+        }
       }
       setOpen(false);
-      fetchFaqs();
-    } catch (e) {
-      console.error(e);
+      await fetchFaqs();
+    } catch {
+      setDialogError("Network error. Try again.");
     } finally {
       setSaving(false);
     }
@@ -104,13 +125,16 @@ export default function AdminFaqsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this FAQ?")) return;
-    const supabase = createAdminBrowserClient();
+    setPageError(null);
     try {
-      const { error } = await supabase.from("faqs").delete().eq("id", id);
-      if (error) throw error;
-      fetchFaqs();
-    } catch (e) {
-      console.error(e);
+      const res = await fetch(`/api/admin/faqs/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) {
+        setPageError(await parseError(res));
+        return;
+      }
+      await fetchFaqs();
+    } catch {
+      setPageError("Could not delete FAQ.");
     }
   };
 
@@ -119,15 +143,31 @@ export default function AdminFaqsPage() {
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= faqs.length) return;
-    const a = faqs[idx];
-    const b = faqs[swapIdx];
-    const supabase = createAdminBrowserClient();
+    const a = faqs[idx]!;
+    const b = faqs[swapIdx]!;
+    setPageError(null);
     try {
-      await supabase.from("faqs").update({ sort_order: b.sort_order }).eq("id", a.id);
-      await supabase.from("faqs").update({ sort_order: a.sort_order }).eq("id", b.id);
-      fetchFaqs();
-    } catch (e) {
-      console.error(e);
+      const [r1, r2] = await Promise.all([
+        fetch(`/api/admin/faqs/${a.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sort_order: b.sort_order }),
+        }),
+        fetch(`/api/admin/faqs/${b.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sort_order: a.sort_order }),
+        }),
+      ]);
+      if (!r1.ok || !r2.ok) {
+        setPageError(await parseError(!r1.ok ? r1 : r2));
+        return;
+      }
+      await fetchFaqs();
+    } catch {
+      setPageError("Could not reorder FAQs.");
     }
   };
 
@@ -141,7 +181,7 @@ export default function AdminFaqsPage() {
           <p className="text-sm text-gray-600 mt-1">Manage frequently asked questions shown on the site.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchFaqs} disabled={loading} style={{ borderColor: "var(--accent-gold)" }}>
+          <Button variant="outline" size="sm" onClick={() => void fetchFaqs()} disabled={loading} style={{ borderColor: "var(--accent-gold)" }}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -151,6 +191,12 @@ export default function AdminFaqsPage() {
           </Button>
         </div>
       </div>
+
+      {pageError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 font-general" role="alert">
+          {pageError}
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -190,7 +236,7 @@ export default function AdminFaqsPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => moveOrder(faq.id, "up")}
+                          onClick={() => void moveOrder(faq.id, "up")}
                           disabled={idx === 0}
                         >
                           ↑
@@ -199,7 +245,7 @@ export default function AdminFaqsPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => moveOrder(faq.id, "down")}
+                          onClick={() => void moveOrder(faq.id, "down")}
                           disabled={idx === faqs.length - 1}
                         >
                           ↓
@@ -215,7 +261,7 @@ export default function AdminFaqsPage() {
                         <Button variant="ghost" size="sm" onClick={() => openEdit(faq)} title="Edit">
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(faq.id)} title="Delete" className="text-red-600">
+                        <Button variant="ghost" size="sm" onClick={() => void handleDelete(faq.id)} title="Delete" className="text-red-600">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -228,11 +274,22 @@ export default function AdminFaqsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setDialogError(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit FAQ" : "Add FAQ"}</DialogTitle>
           </DialogHeader>
+          {dialogError ? (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+              {dialogError}
+            </div>
+          ) : null}
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="faq-question">Question</Label>
@@ -260,7 +317,12 @@ export default function AdminFaqsPage() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || !question.trim() || !answer.trim()} style={{ backgroundColor: "var(--primary-blue)" }}>
+            <Button
+              onClick={() => void handleSave()}
+              disabled={saving || !question.trim() || !answer.trim()}
+              loading={saving}
+              style={{ backgroundColor: "var(--primary-blue)" }}
+            >
               {saving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>

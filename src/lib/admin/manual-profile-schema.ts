@@ -69,8 +69,7 @@ const manualProfileFieldsSchema = z.object({
     employed_in: optStr(50),
     occupation: optStr(100),
     organization: optStr(150),
-    annual_income_min: optIncome,
-    annual_income_max: optIncome,
+    annual_income: optIncome,
     gotra: optStr(100),
     father_name: optStr(100),
     father_occupation: optStr(100),
@@ -80,17 +79,14 @@ const manualProfileFieldsSchema = z.object({
     siblings_brothers: optSiblingInt,
     siblings_sisters: optSiblingInt,
     siblings_notes: z.preprocess((v) => toOptTrimmedStr(v), z.union([z.string(), z.null()])),
-    family_type: optStr(20),
-    family_values: optStr(20),
-    family_status: optStr(30),
     siblings_count: optSiblingInt,
-    contact_address: z.preprocess((v) => toOptTrimmedStr(v), z.union([z.string(), z.null()])),
+    permanent_address: z.preprocess((v) => toOptTrimmedStr(v), z.union([z.string(), z.null()])),
+    current_address: z.preprocess((v) => toOptTrimmedStr(v), z.union([z.string(), z.null()])),
     contact_number: optStr(20),
     country: optStr(50),
     state: optStr(50),
     city: optStr(50),
     citizenship: optStr(50),
-    grew_up_in: optStr(100),
     residing_in: optStr(100),
     willing_to_relocate: optStr(10),
     about_me: z.preprocess((v) => toOptTrimmedStr(v), z.union([z.string().max(5000), z.null()])),
@@ -118,15 +114,6 @@ const manualProfileRefines = <S extends z.ZodTypeAny>(schema: S) =>
         return min <= max;
       },
       { message: "Partner minimum age cannot be greater than maximum", path: ["age_max"] }
-    )
-    .refine(
-      (d: z.infer<S>) => {
-        const lo = d.annual_income_min;
-        const hi = d.annual_income_max;
-        if (lo == null || hi == null) return true;
-        return lo <= hi;
-      },
-      { message: "Minimum income cannot be greater than maximum", path: ["annual_income_max"] }
     );
 
 /** Finalize payload after POST /api/admin/profiles/manual/init (no password). */

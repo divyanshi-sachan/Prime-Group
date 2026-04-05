@@ -29,6 +29,17 @@ import { cn } from "@/lib/utils";
 import { manualProfileFinalizeSchema } from "@/lib/admin/manual-profile-schema";
 import { MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
 import { PASSWORD_MIN_LENGTH, signupPasswordSchema } from "@/lib/auth/password-policy";
+import { ProfilePhotoManager } from "@/components/profile/profile-photo-manager";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ROYAL_GOLD = "rgba(198,167,94,0.5)";
 
@@ -40,9 +51,12 @@ const STEP_LABELS = [
   "Family details",
   "Contact & location",
   "Partner preference",
-  "Bio & publishing",
+  "Bio, visibility & admin",
+  "Photos",
 ] as const;
 
+/** Step index for photo upload (after profile row exists). */
+const PHOTOS_STEP_INDEX = 8;
 const LAST_STEP = STEP_LABELS.length - 1;
 
 type ManualWizardFormValues = {
@@ -68,8 +82,7 @@ type ManualWizardFormValues = {
   employed_in: string;
   occupation: string;
   organization: string;
-  annual_income_min: string;
-  annual_income_max: string;
+  annual_income: string;
   gotra: string;
   father_name: string;
   father_occupation: string;
@@ -79,17 +92,14 @@ type ManualWizardFormValues = {
   siblings_brothers: string;
   siblings_sisters: string;
   siblings_notes: string;
-  family_type: string;
-  family_values: string;
-  family_status: string;
   siblings_count: string;
-  contact_address: string;
+  permanent_address: string;
+  current_address: string;
   contact_number: string;
   country: string;
   state: string;
   city: string;
   citizenship: string;
-  grew_up_in: string;
   residing_in: string;
   willing_to_relocate: string;
   about_me: string;
@@ -129,8 +139,7 @@ const defaultFormValues: ManualWizardFormValues = {
   employed_in: "",
   occupation: "",
   organization: "",
-  annual_income_min: "",
-  annual_income_max: "",
+  annual_income: "",
   gotra: "",
   father_name: "",
   father_occupation: "",
@@ -140,17 +149,14 @@ const defaultFormValues: ManualWizardFormValues = {
   siblings_brothers: "",
   siblings_sisters: "",
   siblings_notes: "",
-  family_type: "",
-  family_values: "",
-  family_status: "",
   siblings_count: "",
-  contact_address: "",
+  permanent_address: "",
+  current_address: "",
   contact_number: "",
   country: "India",
   state: "",
   city: "",
   citizenship: "",
-  grew_up_in: "",
   residing_in: "",
   willing_to_relocate: "",
   about_me: "",
@@ -190,8 +196,7 @@ function formToApiPayload(v: ManualWizardFormValues): Record<string, unknown> {
     employed_in: v.employed_in || null,
     occupation: v.occupation || null,
     organization: v.organization || null,
-    annual_income_min: v.annual_income_min.trim() === "" ? null : v.annual_income_min.trim(),
-    annual_income_max: v.annual_income_max.trim() === "" ? null : v.annual_income_max.trim(),
+    annual_income: v.annual_income.trim() === "" ? null : v.annual_income.trim(),
     gotra: v.gotra || null,
     father_name: v.father_name || null,
     father_occupation: v.father_occupation || null,
@@ -201,17 +206,14 @@ function formToApiPayload(v: ManualWizardFormValues): Record<string, unknown> {
     siblings_brothers: v.siblings_brothers.trim() === "" ? null : v.siblings_brothers.trim(),
     siblings_sisters: v.siblings_sisters.trim() === "" ? null : v.siblings_sisters.trim(),
     siblings_notes: v.siblings_notes || null,
-    family_type: v.family_type || null,
-    family_values: v.family_values || null,
-    family_status: v.family_status || null,
     siblings_count: v.siblings_count.trim() === "" ? null : v.siblings_count.trim(),
-    contact_address: v.contact_address || null,
+    permanent_address: v.permanent_address || null,
+    current_address: v.current_address || null,
     contact_number: v.contact_number || null,
     country: v.country || null,
     state: v.state || null,
     city: v.city || null,
     citizenship: v.citizenship || null,
-    grew_up_in: v.grew_up_in || null,
     residing_in: v.residing_in || null,
     willing_to_relocate: v.willing_to_relocate || null,
     about_me: v.about_me || null,
@@ -277,6 +279,15 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
     sent: boolean;
     warning?: string;
   } | null>(null);
+  /** Profile created at step 7; photos uploaded against this id. */
+  const [createdProfileId, setCreatedProfileId] = useState<string | null>(null);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
+  const [pendingSuccess, setPendingSuccess] = useState<{
+    message: string;
+    accountEmail: string;
+    attachedToExistingAccount: boolean;
+  } | null>(null);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   const form = useForm<ManualWizardFormValues>({
     defaultValues: defaultFormValues,
@@ -288,12 +299,33 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
     setCopied(false);
     setAccountEmailStatus(null);
     setStep(0);
+    setCreatedProfileId(null);
+    setCreatedUserId(null);
+    setPendingSuccess(null);
+    setExitConfirmOpen(false);
     form.reset(defaultFormValues);
   };
 
-  const handleClose = (next: boolean) => {
-    if (!next) resetAll();
-    onOpenChange(next);
+  const closeDialogFully = () => {
+    resetAll();
+    onOpenChange(false);
+  };
+
+  const requestCloseDialog = () => {
+    if (successPayload) {
+      closeDialogFully();
+      return;
+    }
+    if (step > 0) {
+      setExitConfirmOpen(true);
+      return;
+    }
+    closeDialogFully();
+  };
+
+  const confirmDiscardAndClose = () => {
+    setExitConfirmOpen(false);
+    closeDialogFully();
   };
 
   useEffect(() => {
@@ -310,7 +342,7 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
   const selectTriggerClass =
     "border-[var(--primary-blue)]/25 bg-white/80 transition-colors focus:ring-2 focus:ring-[var(--primary-blue)]/40 focus:border-[var(--primary-blue)]/50 data-[placeholder]:text-muted-foreground";
 
-  async function submitWizard() {
+  async function createProfileAndGoToPhotos() {
     setError(null);
     const raw = formToFinalizePayload(form.getValues());
     const parsed = manualProfileFinalizeSchema.safeParse(raw);
@@ -334,6 +366,8 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
         message?: string;
         accountEmail?: string;
         attachedToExistingAccount?: boolean;
+        profileId?: string;
+        userId?: string;
         details?: unknown;
       };
 
@@ -342,19 +376,46 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
         return;
       }
 
-      setSuccessPayload({
+      const pid = data.profileId;
+      const uid = data.userId;
+      if (!pid || !uid) {
+        setError("Profile was created but the server did not return ids. Add photos from the profile list.");
+        setSuccessPayload({
+          message: data.message ?? "Profile created.",
+          accountEmail: data.accountEmail ?? "",
+          attachedToExistingAccount: Boolean(data.attachedToExistingAccount),
+        });
+        form.reset(defaultFormValues);
+        setStep(0);
+        onCreated?.();
+        return;
+      }
+
+      setPendingSuccess({
         message: data.message ?? "Profile created.",
         accountEmail: data.accountEmail ?? "",
         attachedToExistingAccount: Boolean(data.attachedToExistingAccount),
       });
-      form.reset(defaultFormValues);
-      setStep(0);
-      onCreated?.();
+      setCreatedProfileId(pid);
+      setCreatedUserId(uid);
+      setStep(PHOTOS_STEP_INDEX);
     } catch {
       setError("Network error. Try again.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function completeWizardAfterPhotos() {
+    if (pendingSuccess) {
+      setSuccessPayload(pendingSuccess);
+    }
+    setPendingSuccess(null);
+    setCreatedProfileId(null);
+    setCreatedUserId(null);
+    form.reset(defaultFormValues);
+    setStep(0);
+    onCreated?.();
   }
 
   const goNext = async () => {
@@ -401,19 +462,34 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
       return;
     }
 
+    if (step === 7) {
+      void createProfileAndGoToPhotos();
+      return;
+    }
+
     if (step < LAST_STEP) setStep((s) => s + 1);
-    else void submitWizard();
   };
 
   const goBack = () => {
     setError(null);
+    if (step === PHOTOS_STEP_INDEX) return;
     if (step > 0) setStep((s) => s - 1);
   };
 
   const { register, watch, setValue } = form;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          onOpenChange(true);
+          return;
+        }
+        requestCloseDialog();
+      }}
+    >
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl border border-[var(--primary-blue)]/15 bg-[#FDFBF7] shadow-xl sm:max-w-3xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-start justify-between gap-3">
@@ -543,11 +619,49 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 type="button"
-                onClick={() => handleClose(false)}
+                onClick={() => closeDialogFully()}
                 style={{ backgroundColor: "var(--primary-blue)" }}
                 className="text-white"
               >
                 Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : step === PHOTOS_STEP_INDEX && createdProfileId && createdUserId ? (
+          <div className="mt-6 space-y-6">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800 font-general" role="alert">
+                {error}
+              </div>
+            )}
+            <p className="text-sm text-gray-600 font-general">
+              The profile is saved. Add photos now (optional) — same square crop and limits as member onboarding. You can
+              also add or edit them later from the profile list.
+            </p>
+            <ProfilePhotoManager
+              profileId={createdProfileId}
+              userId={createdUserId}
+              initialPhotos={[]}
+              onUpdate={() => {}}
+              useAdminClient
+            />
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => requestCloseDialog()}
+                className="w-full sm:w-auto rounded-2xl border-2"
+                style={{ borderColor: ROYAL_GOLD, color: "var(--primary-blue)" }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => completeWizardAfterPhotos()}
+                className="w-full sm:w-auto rounded-2xl px-8 text-white"
+                style={{ backgroundColor: "var(--primary-blue)" }}
+              >
+                Finish
               </Button>
             </DialogFooter>
           </div>
@@ -650,11 +764,11 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="manual-birthplace" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                    Birthplace
+                    Birthplace (city or town of birth)
                   </Label>
                   <Input
                     id="manual-birthplace"
-                    placeholder="City / town of birth"
+                    placeholder="Where you were born"
                     className={cn("w-full", inputClass)}
                     {...register("birthplace")}
                   />
@@ -740,7 +854,7 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="manual-edu" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                    Highest education / degree
+                    Degree / highest qualification
                   </Label>
                   <Input id="manual-edu" placeholder="e.g. B.Tech, MBA" className={cn("w-full", inputClass)} {...register("highest_education")} />
                 </div>
@@ -758,23 +872,21 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="manual-org" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                    Organization / company
+                    Working at (job / company)
                   </Label>
-                  <Input id="manual-org" className={cn("w-full", inputClass)} {...register("organization")} />
+                  <Input id="manual-org" className={cn("w-full", inputClass)} {...register("organization")} placeholder="Company or profession" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-inc-min" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                      Annual income (min)
-                    </Label>
-                    <Input id="manual-inc-min" inputMode="numeric" className={cn("w-full", inputClass)} {...register("annual_income_min")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-inc-max" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                      Annual income (max)
-                    </Label>
-                    <Input id="manual-inc-max" inputMode="numeric" className={cn("w-full", inputClass)} {...register("annual_income_max")} />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-annual-income" className="font-medium" style={{ color: "var(--primary-blue)" }}>
+                    Annual income
+                  </Label>
+                  <Input
+                    id="manual-annual-income"
+                    inputMode="numeric"
+                    placeholder="e.g. annual amount in INR"
+                    className={cn("w-full", inputClass)}
+                    {...register("annual_income")}
+                  />
                 </div>
               </div>
             )}
@@ -836,34 +948,32 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-medium text-sm" style={{ color: "var(--primary-blue)" }}>Family type</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("family_type")} placeholder="e.g. Nuclear" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-medium text-sm" style={{ color: "var(--primary-blue)" }}>Family values</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("family_values")} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="font-medium text-sm" style={{ color: "var(--primary-blue)" }}>Family status</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("family_status")} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="font-medium text-sm text-muted-foreground">Siblings count (legacy total)</Label>
-                    <Input inputMode="numeric" className={cn("w-full", inputClass)} {...register("siblings_count")} />
-                  </div>
-                </div>
               </div>
             )}
 
             {step === 5 && (
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="manual-addr" className="font-medium" style={{ color: "var(--primary-blue)" }}>
-                    Contact address
+                  <Label htmlFor="manual-permanent-addr" className="font-medium" style={{ color: "var(--primary-blue)" }}>
+                    Permanent address
                   </Label>
-                  <Input id="manual-addr" className={cn("w-full", inputClass)} {...register("contact_address")} />
+                  <Input
+                    id="manual-permanent-addr"
+                    className={cn("w-full", inputClass)}
+                    placeholder="Native / permanent address"
+                    {...register("permanent_address")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-current-addr" className="font-medium" style={{ color: "var(--primary-blue)" }}>
+                    Current address
+                  </Label>
+                  <Input
+                    id="manual-current-addr"
+                    className={cn("w-full", inputClass)}
+                    placeholder="If different from permanent"
+                    {...register("current_address")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="manual-phone" className="font-medium" style={{ color: "var(--primary-blue)" }}>
@@ -902,34 +1012,6 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                       <SelectItem value="maybe">Maybe</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Religion</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("religion")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Mother tongue</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("mother_tongue")} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Profile for</Label>
-                  <Input className={cn("w-full", inputClass)} {...register("profile_for")} placeholder="e.g. Self, Son, Daughter" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Citizenship</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("citizenship")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Grew up in</Label>
-                    <Input className={cn("w-full", inputClass)} {...register("grew_up_in")} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Residing in</Label>
-                  <Input className={cn("w-full", inputClass)} {...register("residing_in")} />
                 </div>
               </div>
             )}
@@ -972,6 +1054,33 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
 
             {step === 7 && (
               <div className="space-y-5">
+                <p className="text-sm text-[#8B7A5A] font-general">
+                  Extra fields for offline records (optional). Member onboarding collects these on the profile editor if needed.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Religion</Label>
+                    <Input className={cn("w-full", inputClass)} {...register("religion")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Mother tongue</Label>
+                    <Input className={cn("w-full", inputClass)} {...register("mother_tongue")} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Profile for</Label>
+                  <Input className={cn("w-full", inputClass)} {...register("profile_for")} placeholder="e.g. Self, Son, Daughter" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Citizenship</Label>
+                    <Input className={cn("w-full", inputClass)} {...register("citizenship")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-medium" style={{ color: "var(--primary-blue)" }}>Residing in</Label>
+                    <Input className={cn("w-full", inputClass)} {...register("residing_in")} />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="manual-about" className="font-medium" style={{ color: "var(--primary-blue)" }}>
                     About / bio
@@ -1049,7 +1158,7 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                   <Textarea rows={2} className={inputClass} {...register("rejection_reason")} placeholder="Only if status is rejected" />
                 </div>
                 <p className="text-xs text-gray-600 font-general border-t border-[var(--primary-blue)]/10 pt-3">
-                  Photos are not uploaded here. After creation, open the profile from the list and add images from the profile editor.
+                  Next step: upload profile photos (optional). You can skip and add them later from the profile list.
                 </p>
               </div>
             )}
@@ -1059,7 +1168,7 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleClose(false)}
+                  onClick={() => requestCloseDialog()}
                   disabled={submitting}
                   className="flex-1 sm:flex-none rounded-2xl border-2"
                   style={{ borderColor: ROYAL_GOLD, color: "var(--primary-blue)" }}
@@ -1088,14 +1197,14 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
                 {submitting ? (
                   <>
                     <Spinner size="sm" />
-                    {step === 0 ? "Sending…" : step === LAST_STEP ? "Creating…" : "Please wait…"}
+                    {step === 0 ? "Sending…" : step === 7 ? "Creating…" : "Please wait…"}
                   </>
                 ) : step === 0 ? (
                   "Continue & send email"
-                ) : step < LAST_STEP ? (
-                  "Continue"
+                ) : step === 7 ? (
+                  "Save & continue to photos"
                 ) : (
-                  "Create profile"
+                  "Continue"
                 )}
               </Button>
             </DialogFooter>
@@ -1103,5 +1212,31 @@ export function AdminManualProfileDialog({ open, onOpenChange, onCreated }: Prop
         )}
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={exitConfirmOpen} onOpenChange={setExitConfirmOpen}>
+      <AlertDialogContent className="rounded-2xl border border-[var(--primary-blue)]/15">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-playfair-display text-xl" style={{ color: "var(--primary-blue)" }}>
+            Exit offline profile setup?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-left font-general text-base text-gray-600">
+            You are in the middle of creating a profile. If you leave now, unsaved answers on this screen will be lost.
+            {step === PHOTOS_STEP_INDEX && createdProfileId
+              ? " The member account and profile are already saved; you can add photos later from the admin profile list."
+              : null}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-xl">Keep editing</AlertDialogCancel>
+          <AlertDialogAction
+            className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => confirmDiscardAndClose()}
+          >
+            Exit anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

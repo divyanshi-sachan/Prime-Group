@@ -60,7 +60,11 @@ const step1Schema = z.object({
   school: z.string().optional(),
   college_university: z.string().optional(),
   highest_education: z.string().optional(),
+  field_of_study: z.string().optional(),
+  employed_in: z.string().optional(),
+  occupation: z.string().optional(),
   organization: z.string().optional(),
+  annual_income: z.string().optional(),
 });
 // Step 2: your gotra (on profile)
 const step2GotraSchema = z.object({
@@ -79,7 +83,8 @@ const step3FamilySchema = z.object({
 });
 // Step 4: contact + location
 const step4ContactSchema = z.object({
-  contact_address: z.string().optional(),
+  permanent_address: z.string().optional(),
+  current_address: z.string().optional(),
   contact_number: z.string().optional(),
   country: z.string().min(1, "Country is required"),
   state: z.string().optional(),
@@ -185,7 +190,11 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
     school: reduxStep1.school ?? "",
     college_university: reduxStep1.college_university ?? "",
     highest_education: reduxStep1.highest_education ?? "",
+    field_of_study: reduxStep1.field_of_study ?? "",
+    employed_in: reduxStep1.employed_in ?? "",
+    occupation: reduxStep1.occupation ?? "",
     organization: reduxStep1.organization ?? "",
+    annual_income: reduxStep1.annual_income ?? "",
     gotra: reduxStep1.gotra ?? "",
     father_name: reduxStep2.father_name ?? "",
     father_occupation: reduxStep2.father_occupation ?? "",
@@ -195,7 +204,8 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
     siblings_brothers: reduxStep2.siblings_brothers ?? "",
     siblings_sisters: reduxStep2.siblings_sisters ?? "",
     siblings_notes: reduxStep2.siblings_notes ?? "",
-    contact_address: reduxStep2.contact_address ?? "",
+    permanent_address: reduxStep2.permanent_address ?? "",
+    current_address: reduxStep2.current_address ?? "",
     contact_number: reduxStep2.contact_number ?? "",
     country: reduxStep2.country ?? "India",
     state: reduxStep2.state ?? "",
@@ -223,7 +233,11 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
       school: reduxStep1.school ?? "",
       college_university: reduxStep1.college_university ?? "",
       highest_education: reduxStep1.highest_education ?? "",
+      field_of_study: reduxStep1.field_of_study ?? "",
+      employed_in: reduxStep1.employed_in ?? "",
+      occupation: reduxStep1.occupation ?? "",
       organization: reduxStep1.organization ?? "",
+      annual_income: reduxStep1.annual_income ?? "",
       gotra: reduxStep1.gotra ?? "",
       father_name: reduxStep2.father_name ?? "",
       father_occupation: reduxStep2.father_occupation ?? "",
@@ -233,7 +247,8 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
       siblings_brothers: reduxStep2.siblings_brothers ?? "",
       siblings_sisters: reduxStep2.siblings_sisters ?? "",
       siblings_notes: reduxStep2.siblings_notes ?? "",
-      contact_address: reduxStep2.contact_address ?? "",
+      permanent_address: reduxStep2.permanent_address ?? "",
+      current_address: reduxStep2.current_address ?? "",
       contact_number: reduxStep2.contact_number ?? "",
       country: reduxStep2.country ?? "India",
       state: reduxStep2.state ?? "",
@@ -259,7 +274,11 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
         school: data.school,
         college_university: data.college_university,
         highest_education: data.highest_education,
+        field_of_study: data.field_of_study,
+        employed_in: data.employed_in,
+        occupation: data.occupation,
         organization: data.organization,
+        annual_income: data.annual_income,
         gotra: data.gotra,
       };
       dispatch(updateStep1(payload));
@@ -273,7 +292,8 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
         siblings_brothers: data.siblings_brothers,
         siblings_sisters: data.siblings_sisters,
         siblings_notes: data.siblings_notes,
-        contact_address: data.contact_address,
+        permanent_address: data.permanent_address,
+        current_address: data.current_address,
         contact_number: data.contact_number,
         country: data.country,
         state: data.state,
@@ -395,13 +415,20 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
         }
       } else if (step === 1) {
         const profileId = await getProfileId();
+        const incomeRaw = merged.annual_income?.trim();
+        const incomeParsed = incomeRaw ? parseInt(incomeRaw, 10) : null;
         const payload = {
           height_cm: merged.height_cm ? parseInt(merged.height_cm, 10) : null,
           complexion: merged.complexion || null,
           school: merged.school || null,
           college_university: merged.college_university || null,
           highest_education: merged.highest_education || null,
+          field_of_study: merged.field_of_study || null,
+          employed_in: merged.employed_in || null,
+          occupation: merged.occupation || null,
           organization: merged.organization || null,
+          annual_income:
+            incomeParsed !== null && !Number.isNaN(incomeParsed) && incomeParsed >= 0 ? incomeParsed : null,
           profile_completion_pct: Math.round((2 / 7) * 100),
           updated_at: new Date().toISOString(),
         };
@@ -442,7 +469,8 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
       } else if (step === 4) {
         const profileId = await getProfileId();
         const payload = {
-          contact_address: merged.contact_address || null,
+          permanent_address: merged.permanent_address || null,
+          current_address: merged.current_address || null,
           contact_number: merged.contact_number || null,
           country: merged.country,
           state: merged.state || null,
@@ -678,8 +706,8 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="birthplace" className="font-medium" style={{ color: "var(--primary-blue)" }}>Birthplace</Label>
-                <Input id="birthplace" {...form.register("birthplace")} className={cn("w-full", inputClass)} placeholder="City / town of birth" />
+                <Label htmlFor="birthplace" className="font-medium" style={{ color: "var(--primary-blue)" }}>Birthplace (city or town of birth)</Label>
+                <Input id="birthplace" {...form.register("birthplace")} className={cn("w-full", inputClass)} placeholder="Where you were born" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -729,12 +757,28 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
                 <Input id="college_university" {...form.register("college_university")} className={cn("w-full", inputClass)} placeholder="College or university" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="highest_education" className="font-medium" style={{ color: "var(--primary-blue)" }}>Degree / Highest qualification</Label>
+                <Label htmlFor="highest_education" className="font-medium" style={{ color: "var(--primary-blue)" }}>Degree / highest qualification</Label>
                 <Input id="highest_education" {...form.register("highest_education")} className={cn("w-full", inputClass)} placeholder="e.g. B.Tech, MBA" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="organization" className="font-medium" style={{ color: "var(--primary-blue)" }}>Working at (Job profile)</Label>
+                <Label htmlFor="field_of_study" className="font-medium" style={{ color: "var(--primary-blue)" }}>Field of study</Label>
+                <Input id="field_of_study" {...form.register("field_of_study")} className={cn("w-full", inputClass)} placeholder="Optional" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employed_in" className="font-medium" style={{ color: "var(--primary-blue)" }}>Employed in</Label>
+                <Input id="employed_in" {...form.register("employed_in")} className={cn("w-full", inputClass)} placeholder="e.g. Private sector (optional)" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="occupation" className="font-medium" style={{ color: "var(--primary-blue)" }}>Occupation / role</Label>
+                <Input id="occupation" {...form.register("occupation")} className={cn("w-full", inputClass)} placeholder="Optional" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="organization" className="font-medium" style={{ color: "var(--primary-blue)" }}>Working at (job / company)</Label>
                 <Input id="organization" {...form.register("organization")} className={cn("w-full", inputClass)} placeholder="Company or profession" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="annual_income" className="font-medium" style={{ color: "var(--primary-blue)" }}>Annual income (INR, optional)</Label>
+                <Input id="annual_income" type="text" inputMode="numeric" {...form.register("annual_income")} className={cn("w-full", inputClass)} placeholder="e.g. 1200000" />
               </div>
             </>
           )}
@@ -796,8 +840,20 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
           {step === 4 && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="contact_address" className="font-medium" style={{ color: "var(--primary-blue)" }}>Address</Label>
-                <Input id="contact_address" {...form.register("contact_address")} className={cn("w-full", inputClass)} placeholder="Full address" />
+                <Label htmlFor="permanent_address" className="font-medium" style={{ color: "var(--primary-blue)" }}>Permanent address</Label>
+                <Input
+                  id="permanent_address"
+                  {...form.register("permanent_address")}
+                  className={cn("w-full", inputClass)}
+                  placeholder="Native / permanent address"
+                />
+                <Label htmlFor="current_address" className="font-medium mt-3 block" style={{ color: "var(--primary-blue)" }}>Current address</Label>
+                <Input
+                  id="current_address"
+                  {...form.register("current_address")}
+                  className={cn("w-full", inputClass)}
+                  placeholder="If same as permanent, you can leave blank"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact_number" className="font-medium" style={{ color: "var(--primary-blue)" }}>Contact number</Label>
