@@ -3,6 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import {
+  BUSINESS_ADDRESS_LINES,
+  BUSINESS_EMAIL,
+  BUSINESS_EMAIL_MAILTO,
+  BUSINESS_PHONE_DISPLAY,
+  BUSINESS_PHONE_TEL,
+} from "@/lib/business-contact"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -77,7 +84,10 @@ function Footerdemo() {
                 Terms of Service
               </Link>
               <Link href="/refund" className="block transition-colors duration-300" style={{ color: 'var(--pure-white)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-gold)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--pure-white)'}>
-                Refund Policy
+                Refund &amp; Cancellation
+              </Link>
+              <Link href="/shipping-delivery" className="block transition-colors duration-300" style={{ color: 'var(--pure-white)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-gold)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--pure-white)'}>
+                Shipping &amp; Delivery
               </Link>
               <Link href="/community-guidelines" className="block transition-colors duration-300" style={{ color: 'var(--pure-white)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-gold)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--pure-white)'}>
                 Community Guidelines
@@ -90,17 +100,27 @@ function Footerdemo() {
           <div>
             <h3 className="mb-4 text-lg font-playfair-display font-bold text-gold-gradient">Contact Us</h3>
             <address className="space-y-2 text-sm not-italic font-general" style={{ color: 'var(--pure-white)' }}>
-              <p>Prime Group Matrimony</p>
-              <p>Near Research and Innovation Park - IIT Delhi, 110016</p>
-              <p>Phone: +91 123 456 7890</p>
+              {BUSINESS_ADDRESS_LINES.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
               <p>
-                Email:{" "}
+                Phone:{" "}
                 <a
-                  href="mailto:primegroupmatrimony@gmail.com"
+                  href={BUSINESS_PHONE_TEL}
                   className="underline underline-offset-2 transition-opacity hover:opacity-90"
                   style={{ color: "var(--accent-gold)" }}
                 >
-                  primegroupmatrimony@gmail.com
+                  {BUSINESS_PHONE_DISPLAY}
+                </a>
+              </p>
+              <p>
+                Email:{" "}
+                <a
+                  href={BUSINESS_EMAIL_MAILTO}
+                  className="underline underline-offset-2 transition-opacity hover:opacity-90"
+                  style={{ color: "var(--accent-gold)" }}
+                >
+                  {BUSINESS_EMAIL}
                 </a>
               </p>
             </address>
@@ -246,7 +266,10 @@ function Footerdemo() {
               Cookie Settings
             </Link>
             <Link href="/refund" className="transition-colors duration-300" style={{ color: 'var(--pure-white)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-gold)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--pure-white)'}>
-              Refund Policy
+              Refund &amp; Cancellation
+            </Link>
+            <Link href="/shipping-delivery" className="transition-colors duration-300" style={{ color: 'var(--pure-white)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-gold)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--pure-white)'}>
+              Shipping &amp; Delivery
             </Link>
           </nav>
         </div>

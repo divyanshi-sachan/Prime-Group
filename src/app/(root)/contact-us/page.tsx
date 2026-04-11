@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import ContactHero from "@/components/contact/contact-hero";
 import ContactAside from "@/components/contact/contact-aside";
 import ContactForm from "@/components/contact/contact-form";
+import { ContactLeadershipCarousel } from "@/components/contact/contact-leadership-carousel";
 
 export const metadata: Metadata = {
   title: "Contact Us | Prime Group Matrimony",
@@ -26,6 +27,8 @@ export default function ContactUsPage() {
           </div>
         </div>
       </section>
+
+      <ContactLeadershipCarousel />
     </div>
   );
 }

@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Settings, CreditCard, Loader2 } from "lucide-react";
 
+import type { ContactLeadershipMember } from "@/lib/contact-leadership";
+import { ContactLeadershipSettings } from "@/components/admin/contact-leadership-settings";
+
 type PaymentMethodValue = "razorpay" | "upi_qr";
 
 export default function AdminSettingsPage() {
   const cardStyle = { borderColor: "rgba(212, 175, 55, 0.25)", backgroundColor: "white" };
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("razorpay");
+  const [leadership, setLeadership] = useState<ContactLeadershipMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -21,6 +25,9 @@ export default function AdminSettingsPage() {
         const data = await res.json();
         if (res.ok && data.payment_method) {
           setPaymentMethod(data.payment_method === "upi_qr" ? "upi_qr" : "razorpay");
+        }
+        if (res.ok && Array.isArray(data.contact_leadership)) {
+          setLeadership(data.contact_leadership);
         }
       } catch {
         // keep default
@@ -102,6 +109,8 @@ export default function AdminSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ContactLeadershipSettings leadership={leadership} onChange={setLeadership} loading={loading} />
 
       <Card className="rounded-xl border shadow-sm" style={cardStyle}>
         <CardHeader>

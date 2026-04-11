@@ -23,10 +23,71 @@ export default function AboutPage() {
               className="font-general font-medium text-sm sm:text-base leading-relaxed"
               style={{ color: "var(--primary-blue)", opacity: 0.9 }}
             >
-              Prime Group Matrimony is a modern matrimonial platform built to connect individuals
-              seeking life partners in a secure, privacy-focused environment. We combine traditional
-              values with contemporary technology to make the search for a life partner respectful,
-              efficient, and trustworthy.
+              Prime Group Matrimony is an India-focused online matrimonial platform operated by Prime
+              Group Matrimony. We help individuals and families discover compatible matches through
+              structured profiles, search and discovery tools, and optional paid features that improve
+              visibility and how members connect—always with clear consent and privacy controls.
+            </p>
+
+            <h2
+              id="what-we-offer"
+              className="font-playfair-display text-xl sm:text-2xl font-bold tracking-tight mt-10 scroll-mt-28"
+              style={{ color: "var(--primary-blue)" }}
+            >
+              What we offer
+            </h2>
+            <p
+              className="font-general font-medium text-sm sm:text-base leading-relaxed"
+              style={{ color: "var(--primary-blue)", opacity: 0.88 }}
+            >
+              We sell access to digital matrimony services on our website and app (where available),
+              including: creating and managing a matrimonial profile; browsing and filtering compatible
+              profiles; expressing interest; favourites and shortlists; and optional paid plans or
+              credits for enhanced reach, priority placement, or unlocking contact details where the
+              product allows—subject to mutual consent and our{" "}
+              <Link
+                href="/terms"
+                className="underline font-semibold hover:opacity-80 font-general"
+                style={{ color: "var(--accent-gold)" }}
+              >
+                Terms of Service
+              </Link>
+              . We do not arrange marriages or guarantee outcomes; we provide a technology platform and
+              support processes to help you meet people who may be suitable for marriage.
+            </p>
+
+            <h2
+              id="business-model"
+              className="font-playfair-display text-xl sm:text-2xl font-bold tracking-tight mt-10 scroll-mt-28"
+              style={{ color: "var(--primary-blue)" }}
+            >
+              Our business model
+            </h2>
+            <p
+              className="font-general font-medium text-sm sm:text-base leading-relaxed"
+              style={{ color: "var(--primary-blue)", opacity: 0.88 }}
+            >
+              Prime Group Matrimony is a direct-to-consumer (B2C) digital business. Basic registration
+              and profile features may be free or limited; we earn revenue when members purchase
+              subscriptions, bundles, or one-time paid features (such as credits or contact unlocks)
+              shown at checkout. Payments are processed by regulated payment partners; we receive a fee
+              for the service delivered on the platform. We may introduce new plans or pricing over
+              time, with notice where required by law or contract.
+            </p>
+            <p
+              className="font-general font-medium text-sm sm:text-base leading-relaxed"
+              style={{ color: "var(--primary-blue)", opacity: 0.88 }}
+            >
+              We do not sell your personal data to advertisers. Marketing communications, if any, are
+              sent in line with your preferences and our{" "}
+              <Link
+                href="/privacy"
+                className="underline font-semibold hover:opacity-80 font-general"
+                style={{ color: "var(--accent-gold)" }}
+              >
+                Privacy Policy
+              </Link>
+              .
             </p>
 
             <h2
