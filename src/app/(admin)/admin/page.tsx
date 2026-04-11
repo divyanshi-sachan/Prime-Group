@@ -16,9 +16,14 @@ import {
   TrendingUp,
   PieChart,
   Sparkles,
+  Heart,
+  BookOpen,
+  Activity,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RevenueRow {
   total: number;
@@ -35,6 +40,80 @@ interface CategoryCount {
 interface PlanRow {
   id: string;
   name: string;
+}
+
+const BREAKDOWN_BAR_COLORS = [
+  "var(--primary-blue)",
+  "var(--accent-gold)",
+  "#059669",
+  "#7c3aed",
+  "#dc2626",
+  "#ea580c",
+  "#0891b2",
+  "#4f46e5",
+];
+
+function CategoryBreakdownPanel({
+  rows,
+  footnote,
+  loading,
+}: {
+  rows: CategoryCount[];
+  footnote?: string;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Spinner size="md" label="Loading breakdown…" />
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return <p className="text-sm font-general text-gray-500 py-6 text-center">No profile data yet.</p>;
+  }
+  return (
+    <div className="space-y-4 p-4 sm:p-5">
+      {footnote ? (
+        <p className="text-sm font-general text-gray-600 leading-relaxed">{footnote}</p>
+      ) : null}
+      <ul className="space-y-3.5 list-none m-0 p-0">
+        {rows.map((row, i) => {
+          const barW = row.count > 0 ? Math.max(row.pct, 1) : 0;
+          return (
+            <li key={row.name} className="space-y-1.5">
+              <div className="flex justify-between gap-3 text-sm font-general">
+                <span className="font-medium text-gray-900 truncate min-w-0" title={row.name}>
+                  {row.name}
+                </span>
+                <span className="text-gray-600 shrink-0 tabular-nums">
+                  <span className="font-semibold text-gray-800">{row.count}</span>
+                  <span className="text-gray-400 mx-1">·</span>
+                  {row.pct}%
+                </span>
+              </div>
+              <div
+                className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden"
+                role="presentation"
+                aria-hidden
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500 min-w-px"
+                  style={{
+                    width: `${Math.min(100, barW)}%`,
+                    backgroundColor: BREAKDOWN_BAR_COLORS[i % BREAKDOWN_BAR_COLORS.length],
+                  }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs font-general text-gray-500 pt-1 border-t border-gray-100">
+        Bar length matches share of all profiles (percentages rounded).
+      </p>
+    </div>
+  );
 }
 
 export default function AdminDashboardPage() {
@@ -273,152 +352,101 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Category breakdown: four separate cards with clear tables */}
+      {/* Profile mix: one dimension at a time + share-based bars */}
       <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold font-general flex items-center gap-2" style={{ color: "var(--primary-blue)" }}>
-            <PieChart className="w-5 h-5" style={{ color: "var(--accent-gold)" }} />
-            Category breakdown
-          </h2>
-          <p className="text-sm font-general text-gray-600 mt-0.5">Profile counts by different dimensions. Each block is a separate summary.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold font-general flex items-center gap-2" style={{ color: "var(--primary-blue)" }}>
+              <PieChart className="w-5 h-5 shrink-0" style={{ color: "var(--accent-gold)" }} />
+              Profile mix
+            </h2>
+            <p className="text-sm font-general text-gray-600 mt-1 max-w-2xl leading-relaxed">
+              See how member profiles split by gender, religion, moderation status, and city. Each percentage is{" "}
+              <strong className="font-semibold text-gray-800">share of all profiles</strong> (excluding deleted). Use the tabs
+              to switch views—easier than scanning four tables at once.
+            </p>
+            {!loading && (
+              <p className="text-xs font-general text-gray-500 mt-2">
+                Base: <span className="font-medium text-gray-700">{stats.totalProfiles.toLocaleString()}</span> profiles
+              </p>
+            )}
+          </div>
+          <Button variant="outline" size="sm" className="rounded-lg font-general shrink-0" style={{ borderColor: "var(--accent-gold)" }} asChild>
+            <Link href="/admin/categories" className="inline-flex items-center gap-2">
+              Full demographics
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4">
-          <Card className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
-            <CardHeader className="py-3 px-4 border-b bg-gray-50/80" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              <CardTitle className="text-sm font-semibold font-general" style={{ color: "var(--primary-blue)" }}>
-                By gender
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm font-general">
-                <thead>
-                  <tr className="border-b bg-gray-50/50" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                    <th className="text-left py-2.5 px-4 font-semibold text-gray-700">Category</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-20">Count</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-14">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
-                  ) : byGender.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
-                  ) : (
-                    byGender.map((g) => (
-                      <tr key={g.name} className="border-b last:border-0" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                        <td className="py-2 px-4 font-medium text-gray-800 truncate max-w-[160px]" title={g.name}>{g.name}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{g.count}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{g.pct}%</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
 
-          <Card className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
-            <CardHeader className="py-3 px-4 border-b bg-gray-50/80" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              <CardTitle className="text-sm font-semibold font-general" style={{ color: "var(--primary-blue)" }}>
-                By religion
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm font-general">
-                <thead>
-                  <tr className="border-b bg-gray-50/50" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                    <th className="text-left py-2.5 px-4 font-semibold text-gray-700">Category</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-20">Count</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-14">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
-                  ) : byReligion.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
-                  ) : (
-                    byReligion.map((r) => (
-                      <tr key={r.name} className="border-b last:border-0" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                        <td className="py-2 px-4 font-medium text-gray-800 truncate max-w-[140px]" title={r.name}>{r.name}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{r.count}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{r.pct}%</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+        <Card className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
+          <Tabs defaultValue="gender" className="w-full">
+            <div className="border-b px-3 pt-3 sm:px-4 sm:pt-4 bg-gray-50/60" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
+              <TabsList
+                className="h-auto w-full flex flex-wrap justify-start gap-1 bg-transparent p-0 pb-3"
+                aria-label="Profile breakdown dimension"
+              >
+                <TabsTrigger
+                  value="gender"
+                  className="font-general text-xs sm:text-sm rounded-lg border border-transparent px-3 py-2 data-[state=active]:border-[rgba(212,175,55,0.45)] data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+                >
+                  <Heart className="w-3.5 h-3.5 mr-1.5 hidden sm:inline opacity-70" />
+                  Gender
+                </TabsTrigger>
+                <TabsTrigger
+                  value="religion"
+                  className="font-general text-xs sm:text-sm rounded-lg border border-transparent px-3 py-2 data-[state=active]:border-[rgba(212,175,55,0.45)] data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+                >
+                  <BookOpen className="w-3.5 h-3.5 mr-1.5 hidden sm:inline opacity-70" />
+                  Religion
+                </TabsTrigger>
+                <TabsTrigger
+                  value="status"
+                  className="font-general text-xs sm:text-sm rounded-lg border border-transparent px-3 py-2 data-[state=active]:border-[rgba(212,175,55,0.45)] data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+                >
+                  <Activity className="w-3.5 h-3.5 mr-1.5 hidden sm:inline opacity-70" />
+                  Status
+                </TabsTrigger>
+                <TabsTrigger
+                  value="city"
+                  className="font-general text-xs sm:text-sm rounded-lg border border-transparent px-3 py-2 data-[state=active]:border-[rgba(212,175,55,0.45)] data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+                >
+                  <Building2 className="w-3.5 h-3.5 mr-1.5 hidden sm:inline opacity-70" />
+                  Top cities
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <Card className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
-            <CardHeader className="py-3 px-4 border-b bg-gray-50/80" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              <CardTitle className="text-sm font-semibold font-general" style={{ color: "var(--primary-blue)" }}>
-                By status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm font-general">
-                <thead>
-                  <tr className="border-b bg-gray-50/50" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                    <th className="text-left py-2.5 px-4 font-semibold text-gray-700">Status</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-20">Count</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-14">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
-                  ) : byStatus.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
-                  ) : (
-                    byStatus.map((s) => (
-                      <tr key={s.name} className="border-b last:border-0" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                        <td className="py-2 px-4 font-medium text-gray-800">{s.name}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{s.count}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{s.pct}%</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
-            <CardHeader className="py-3 px-4 border-b bg-gray-50/80" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              <CardTitle className="text-sm font-semibold font-general" style={{ color: "var(--primary-blue)" }}>
-                By city (top 6)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm font-general">
-                <thead>
-                  <tr className="border-b bg-gray-50/50" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                    <th className="text-left py-2.5 px-4 font-semibold text-gray-700">City</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-20">Count</th>
-                    <th className="text-right py-2.5 px-4 font-semibold text-gray-700 w-14">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={3} className="py-6 px-4"><div className="flex justify-center py-2"><Spinner size="sm" label="Loading" /></div></td></tr>
-                  ) : byCity.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 px-4 text-gray-500">No data</td></tr>
-                  ) : (
-                    byCity.map((c) => (
-                      <tr key={c.name} className="border-b last:border-0" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-                        <td className="py-2 px-4 font-medium text-gray-800 truncate max-w-[120px]" title={c.name}>{c.name}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{c.count}</td>
-                        <td className="py-2 px-4 text-right font-medium text-gray-700">{c.pct}%</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </div>
+            <TabsContent value="gender" className="mt-0 focus-visible:ring-0">
+              <CategoryBreakdownPanel
+                loading={loading}
+                rows={byGender}
+                footnote="Self-reported gender on each profile. “Other” includes blanks or custom values."
+              />
+            </TabsContent>
+            <TabsContent value="religion" className="mt-0 focus-visible:ring-0">
+              <CategoryBreakdownPanel
+                loading={loading}
+                rows={byReligion}
+                footnote="Dashboard shows the top 8 religions by count. Open Full demographics for the complete list."
+              />
+            </TabsContent>
+            <TabsContent value="status" className="mt-0 focus-visible:ring-0">
+              <CategoryBreakdownPanel
+                loading={loading}
+                rows={byStatus}
+                footnote="Moderation state: pending review, live on the platform, rejected, or suspended."
+              />
+            </TabsContent>
+            <TabsContent value="city" className="mt-0 focus-visible:ring-0">
+              <CategoryBreakdownPanel
+                loading={loading}
+                rows={byCity}
+                footnote="Top 6 cities by profile count. “Not specified” means no city was saved."
+              />
+            </TabsContent>
+          </Tabs>
+        </Card>
       </section>
 
       <Card className="rounded-xl border shadow-sm" style={cardStyle}>

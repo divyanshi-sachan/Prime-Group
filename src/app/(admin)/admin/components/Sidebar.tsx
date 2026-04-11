@@ -32,7 +32,7 @@ const menuItems = [
   { name: "Blogs", href: "/admin/blogs", icon: FileText, description: "Create & edit posts" },
   { name: "FAQs", href: "/admin/faqs", icon: HelpCircle, description: "Manage FAQs" },
   { name: "Contact", href: "/admin/contact", icon: Mail, description: "Form submissions" },
-  { name: "Categories", href: "/admin/categories", icon: PieChart, description: "Category breakdown" },
+  { name: "Categories", href: "/admin/categories", icon: PieChart, description: "Profile demographics" },
   { name: "Revenue", href: "/admin/revenue", icon: TrendingUp, description: "Revenue & analytics" },
   { name: "Pricing", href: "/admin/pricing", icon: IndianRupee, description: "Plans & prices" },
   { name: "Settings", href: "/admin/settings", icon: Settings, description: "Configuration" },

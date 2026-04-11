@@ -117,8 +117,8 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 rounded-xl" style={{ backgroundColor: "var(--pure-white)" }}>
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto p-0 rounded-2xl border border-[rgba(212,175,55,0.2)] shadow-xl" style={{ backgroundColor: "var(--pure-white)" }}>
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-gray-100/80">
           <DialogDescription className="sr-only">
             View and edit this member profile, photos, and partner preferences.
           </DialogDescription>
@@ -143,18 +143,25 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
           </div>
         </DialogHeader>
 
-        <div className="px-6 pb-4">
+        <div className="px-6 pb-4 pt-4">
           <Tabs value={tab} onValueChange={(v) => setTab(v as "view" | "edit")} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
-              <TabsTrigger value="view" className="font-general">
+            <TabsList className="grid w-full max-w-md grid-cols-2 h-11 p-1 mb-5 rounded-xl bg-slate-100/90 border border-slate-200/80">
+              <TabsTrigger
+                value="view"
+                className="font-general rounded-lg data-[state=active]:bg-white data-[state=active]:text-[var(--primary-blue)] data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+              >
                 View details
               </TabsTrigger>
-              <TabsTrigger value="edit" className="font-general" disabled={!profile || !userId}>
+              <TabsTrigger
+                value="edit"
+                className="font-general rounded-lg data-[state=active]:bg-white data-[state=active]:text-[var(--primary-blue)] data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600"
+                disabled={!profile || !userId}
+              >
                 Edit all fields
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="view" className="mt-0">
+            <TabsContent value="view" className="mt-0 focus-visible:outline-none">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-gold)" }} />
@@ -170,6 +177,7 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
                   preferences={preferences}
                   isOwnProfile={false}
                   forceShowContact
+                  layoutVariant="compact"
                 />
               ) : (
                 <div className="text-center py-12 font-general" style={{ color: "var(--primary-blue)" }}>
@@ -178,7 +186,7 @@ export function AdminProfileModal({ profileId, open, onOpenChange, onStatusUpdat
               )}
             </TabsContent>
 
-            <TabsContent value="edit" className="mt-0 -mx-2 sm:-mx-4">
+            <TabsContent value="edit" className="mt-0 -mx-2 sm:-mx-4 focus-visible:outline-none">
               {profile && userId ? (
                 <EditProfileForm
                   key={`${profile.id}-${reloadKey}`}

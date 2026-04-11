@@ -23,6 +23,11 @@ import {
 import { IndianRupee, Pencil, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { useAdminViewMode } from "@/hooks/use-admin-view-mode";
+import { AdminViewModeToggle } from "@/components/admin/admin-view-mode-toggle";
+import { Badge } from "@/components/ui/badge";
+
+const VIEW_KEY = "adminPricingViewMode";
 
 interface Plan {
   id: string;
@@ -54,6 +59,7 @@ export default function AdminPricingPage() {
     credits: 10,
     is_active: true,
   });
+  const [viewMode, setViewMode] = useAdminViewMode(VIEW_KEY, "cards");
 
   const fetchPlans = async () => {
     setLoading(true);
@@ -166,65 +172,124 @@ export default function AdminPricingPage() {
       </div>
 
       <Card className="rounded-xl border shadow-sm" style={cardStyle}>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0">
           <CardTitle className="font-playfair-display" style={{ color: "var(--primary-blue)" }}>
             Plans
           </CardTitle>
+          {!loading && plans.length > 0 ? <AdminViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border overflow-hidden" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-general">Name</TableHead>
-                  <TableHead className="font-general">Price (₹)</TableHead>
-                  <TableHead className="font-general">Validity</TableHead>
-                  <TableHead className="font-general">Credits</TableHead>
-                  <TableHead className="font-general">Active</TableHead>
-                  <TableHead className="font-general w-[100px]">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-12">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Spinner size="md" label="Loading plans…" />
-                      </div>
-                    </TableCell>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
+              <Spinner size="md" label="Loading plans…" />
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 font-general rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
+              No plans. Run the plans migration (20250212000000_plans_and_payments.sql) to seed default plans.
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="rounded-lg border overflow-x-auto" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-general">Name</TableHead>
+                    <TableHead className="font-general">Price (₹)</TableHead>
+                    <TableHead className="font-general">Validity</TableHead>
+                    <TableHead className="font-general">Credits</TableHead>
+                    <TableHead className="font-general">Active</TableHead>
+                    <TableHead className="font-general min-w-[140px] text-right">Actions</TableHead>
                   </TableRow>
-                ) : plans.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500 font-general">
-                      No plans. Run the plans migration (20250212000000_plans_and_payments.sql) to seed default plans.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  plans.map((p) => (
-                    <TableRow key={p.id} className="font-general">
-                      <TableCell className="font-medium" style={{ color: "var(--primary-blue)" }}>
+                </TableHeader>
+                <TableBody>
+                  {plans.map((p) => (
+                    <TableRow key={p.id} className="font-general align-top">
+                      <TableCell className="py-4 font-medium" style={{ color: "var(--primary-blue)" }}>
                         {p.name}
+                        <div className="text-xs text-gray-500 font-normal mt-0.5">{p.slug}</div>
                       </TableCell>
-                      <TableCell>₹{p.price_inr}</TableCell>
-                      <TableCell>{formatDuration(p.duration_days)}</TableCell>
-                      <TableCell>{p.credits ?? "—"}</TableCell>
-                      <TableCell>
-                        <span className={p.is_active ? "text-green-600" : "text-gray-400"}>
-                          {p.is_active ? "Yes" : "No"}
-                        </span>
+                      <TableCell className="py-4">₹{p.price_inr.toLocaleString("en-IN")}</TableCell>
+                      <TableCell className="py-4">{formatDuration(p.duration_days)}</TableCell>
+                      <TableCell className="py-4">{p.credits ?? "—"}</TableCell>
+                      <TableCell className="py-4">
+                        {p.is_active ? (
+                          <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Off</Badge>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEdit(p)}>
-                          <Pencil className="w-4 h-4" />
-                          Edit
+                      <TableCell className="py-4 text-right">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 min-h-10 px-4 font-general font-semibold rounded-lg border-2 shadow-sm"
+                          style={{ borderColor: "var(--primary-blue)", color: "var(--primary-blue)", backgroundColor: "white" }}
+                          onClick={() => openEdit(p)}
+                        >
+                          <Pencil className="w-4 h-4 shrink-0" aria-hidden />
+                          Edit plan
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {plans.map((p) => (
+                <div
+                  key={p.id}
+                  className="rounded-2xl border bg-white p-5 shadow-sm flex flex-col gap-4"
+                  style={{ borderColor: "rgba(212, 175, 55, 0.35)" }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-playfair-display font-bold text-xl" style={{ color: "var(--primary-blue)" }}>
+                        {p.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 font-mono mt-1">{p.slug}</p>
+                    </div>
+                    {p.is_active ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200 shrink-0">Active</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="shrink-0">
+                        Off
+                      </Badge>
+                    )}
+                  </div>
+                  {p.description ? <p className="text-sm text-gray-600 font-general line-clamp-2">{p.description}</p> : null}
+                  <div className="grid grid-cols-2 gap-3 text-sm font-general">
+                    <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Price</p>
+                      <p className="font-bold text-lg tabular-nums" style={{ color: "var(--primary-blue)" }}>
+                        ₹{p.price_inr.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Credits</p>
+                      <p className="font-semibold text-gray-800">{p.credits ?? "—"}</p>
+                    </div>
+                    <div className="col-span-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Validity</p>
+                      <p className="font-semibold text-gray-800">{formatDuration(p.duration_days)}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 min-h-10 px-4 font-general font-semibold rounded-lg border-2 shadow-sm w-full sm:w-auto mt-auto"
+                    style={{ borderColor: "var(--primary-blue)", color: "var(--primary-blue)", backgroundColor: "white" }}
+                    onClick={() => openEdit(p)}
+                  >
+                    <Pencil className="w-4 h-4 shrink-0" aria-hidden />
+                    Edit plan
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

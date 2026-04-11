@@ -20,8 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { HelpCircle, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { HelpCircle, Plus, Pencil, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useAdminViewMode } from "@/hooks/use-admin-view-mode";
+import { AdminViewModeToggle } from "@/components/admin/admin-view-mode-toggle";
 
 interface FaqRow {
   id: string;
@@ -30,9 +32,48 @@ interface FaqRow {
   sort_order: number;
 }
 
+const VIEW_KEY = "adminFaqsViewMode";
+
 async function parseError(res: Response): Promise<string> {
   const j = (await res.json().catch(() => ({}))) as { error?: string };
   return j.error ?? `Request failed (${res.status})`;
+}
+
+function FaqActions({
+  onEdit,
+  onDelete,
+  layout,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+  layout: "list" | "cards";
+}) {
+  const wrap = layout === "cards" ? "flex flex-col sm:flex-row gap-2 w-full" : "flex flex-wrap items-center justify-end gap-2";
+  return (
+    <div className={wrap} role="group" aria-label="FAQ actions">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-2 min-h-10 px-4 font-general font-semibold rounded-lg border-2 shadow-sm"
+        style={{ borderColor: "var(--primary-blue)", color: "var(--primary-blue)", backgroundColor: "white" }}
+        onClick={onEdit}
+      >
+        <Pencil className="w-4 h-4 shrink-0" aria-hidden />
+        Edit
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-2 min-h-10 px-4 font-general font-semibold rounded-lg border-2 border-red-200 text-red-700 bg-white shadow-sm hover:bg-red-50"
+        onClick={onDelete}
+      >
+        <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
+        Delete
+      </Button>
+    </div>
+  );
 }
 
 export default function AdminFaqsPage() {
@@ -45,6 +86,7 @@ export default function AdminFaqsPage() {
   const [saving, setSaving] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useAdminViewMode(VIEW_KEY, "cards");
 
   const fetchFaqs = async () => {
     setLoading(true);
@@ -171,21 +213,23 @@ export default function AdminFaqsPage() {
     }
   };
 
+  const cardShell = { borderColor: "rgba(212, 175, 55, 0.25)", backgroundColor: "white" } as const;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-playfair-display" style={{ color: "var(--primary-blue)" }}>
             FAQs
           </h1>
-          <p className="text-sm text-gray-600 mt-1">Manage frequently asked questions shown on the site.</p>
+          <p className="text-sm text-gray-600 mt-1 font-general">Manage frequently asked questions shown on the site.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void fetchFaqs()} disabled={loading} style={{ borderColor: "var(--accent-gold)" }}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => void fetchFaqs()} disabled={loading} style={{ borderColor: "var(--accent-gold)" }} className="font-general rounded-xl">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={openCreate} style={{ backgroundColor: "var(--primary-blue)" }}>
+          <Button size="sm" onClick={openCreate} style={{ backgroundColor: "var(--primary-blue)" }} className="font-general rounded-xl">
             <Plus className="w-4 h-4 mr-2" />
             Add FAQ
           </Button>
@@ -198,12 +242,13 @@ export default function AdminFaqsPage() {
         </div>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <HelpCircle className="w-5 h-5" />
+      <Card className="rounded-xl border shadow-sm" style={cardShell}>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2 text-lg font-playfair-display" style={{ color: "var(--primary-blue)" }}>
+            <HelpCircle className="w-5 h-5" style={{ color: "var(--accent-gold)" }} />
             All FAQs
           </CardTitle>
+          {!loading && faqs.length > 0 ? <AdminViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -211,65 +256,93 @@ export default function AdminFaqsPage() {
               <Spinner size="md" label="Loading FAQs…" />
             </div>
           ) : faqs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 font-general">
               <HelpCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No FAQs yet.</p>
-              <Button className="mt-4" onClick={openCreate} style={{ backgroundColor: "var(--primary-blue)" }}>
+              <Button className="mt-4 rounded-xl font-general" onClick={openCreate} style={{ backgroundColor: "var(--primary-blue)" }}>
                 Add first FAQ
               </Button>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Order</TableHead>
-                  <TableHead>Question</TableHead>
-                  <TableHead className="w-[140px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {faqs.map((faq, idx) => (
-                  <TableRow key={faq.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => void moveOrder(faq.id, "up")}
-                          disabled={idx === 0}
-                        >
-                          ↑
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => void moveOrder(faq.id, "down")}
-                          disabled={idx === faqs.length - 1}
-                        >
-                          ↓
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium max-w-xl truncate">{faq.question}</div>
-                      <div className="text-xs text-gray-500 max-w-xl truncate">{faq.answer}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(faq)} title="Edit">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => void handleDelete(faq.id)} title="Delete" className="text-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          ) : viewMode === "list" ? (
+            <div className="rounded-lg border overflow-x-auto" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-general w-28">Order</TableHead>
+                    <TableHead className="font-general">Question</TableHead>
+                    <TableHead className="font-general min-w-[220px] text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {faqs.map((faq, idx) => (
+                    <TableRow key={faq.id} className="font-general align-top">
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 border-gray-200"
+                            onClick={() => void moveOrder(faq.id, "up")}
+                            disabled={idx === 0}
+                            aria-label="Move up"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 border-gray-200"
+                            onClick={() => void moveOrder(faq.id, "down")}
+                            disabled={idx === faqs.length - 1}
+                            aria-label="Move down"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 max-w-xl">
+                        <div className="font-semibold text-[var(--primary-blue)] line-clamp-2">{faq.question}</div>
+                        <div className="text-xs text-gray-500 mt-1 line-clamp-2">{faq.answer}</div>
+                      </TableCell>
+                      <TableCell className="py-4 text-right">
+                        <FaqActions layout="list" onEdit={() => openEdit(faq)} onDelete={() => void handleDelete(faq.id)} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {faqs.map((faq, idx) => (
+                <div
+                  key={faq.id}
+                  className="rounded-2xl border bg-white p-5 shadow-sm flex flex-col gap-4"
+                  style={{ borderColor: "rgba(212, 175, 55, 0.35)" }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 font-general">Order</span>
+                    <div className="flex gap-1">
+                      <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => void moveOrder(faq.id, "up")} disabled={idx === 0} aria-label="Move up">
+                        <ChevronUp className="w-4 h-4" />
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => void moveOrder(faq.id, "down")} disabled={idx === faqs.length - 1} aria-label="Move down">
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-playfair-display font-bold text-lg leading-snug" style={{ color: "var(--primary-blue)" }}>
+                      {faq.question}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-4 font-general">{faq.answer}</p>
+                  </div>
+                  <FaqActions layout="cards" onEdit={() => openEdit(faq)} onDelete={() => void handleDelete(faq.id)} />
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -281,9 +354,9 @@ export default function AdminFaqsPage() {
           if (!next) setDialogError(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="rounded-xl">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit FAQ" : "Add FAQ"}</DialogTitle>
+            <DialogTitle className="font-playfair-display">{editingId ? "Edit FAQ" : "Add FAQ"}</DialogTitle>
           </DialogHeader>
           {dialogError ? (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -298,7 +371,7 @@ export default function AdminFaqsPage() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="e.g. How do I create a profile?"
-                className="mt-2"
+                className="mt-2 rounded-lg"
               />
             </div>
             <div>
@@ -309,12 +382,12 @@ export default function AdminFaqsPage() {
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="Full answer..."
                 rows={4}
-                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} className="rounded-xl font-general">
               Cancel
             </Button>
             <Button
@@ -322,6 +395,7 @@ export default function AdminFaqsPage() {
               disabled={saving || !question.trim() || !answer.trim()}
               loading={saving}
               style={{ backgroundColor: "var(--primary-blue)" }}
+              className="rounded-xl font-general"
             >
               {saving ? "Saving…" : "Save"}
             </Button>

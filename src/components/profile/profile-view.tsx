@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   Calendar,
@@ -103,6 +104,8 @@ export interface ProfileViewProps {
   isOwnProfile?: boolean;
   /** When true (e.g. admin view), always show contact details without credits/unlock gating. */
   forceShowContact?: boolean;
+  /** Tighter typography and spacing for use inside admin modal / narrow layouts. */
+  layoutVariant?: "default" | "compact";
   userId?: string;
   currentUserId?: string;
   unlockedProfileIds?: string[];
@@ -135,24 +138,29 @@ function Section({
   icon: Icon,
   children,
   visible = true,
+  compact = false,
 }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
   visible?: boolean;
+  compact?: boolean;
 }) {
   if (!visible) return null;
   return (
     <div
-      className="rounded-2xl p-6 sm:p-8 transition-shadow hover:shadow-xl bg-white"
+      className={`rounded-2xl transition-shadow bg-white ${compact ? "p-4 sm:p-5 shadow-sm" : "p-6 sm:p-8 hover:shadow-xl"}`}
       style={cardStyle}
     >
-      <h3 className="font-playfair-display text-xl font-bold mb-1 flex items-center gap-2" style={{ color: "var(--primary-blue)" }}>
-        <Icon className="h-5 w-5 flex-shrink-0" style={{ color: "var(--accent-gold)" }} />
+      <h3
+        className={`font-playfair-display font-bold mb-1 flex items-center gap-2 ${compact ? "text-lg" : "text-xl"}`}
+        style={{ color: "var(--primary-blue)" }}
+      >
+        <Icon className={`flex-shrink-0 ${compact ? "h-4 w-4" : "h-5 w-5"}`} style={{ color: "var(--accent-gold)" }} />
         {title}
       </h3>
-      <div className="w-12 h-0.5 rounded-full mb-4" style={{ backgroundColor: "var(--accent-gold)" }} />
-      <div className="font-general text-base leading-relaxed" style={{ color: "var(--primary-blue)" }}>
+      <div className={`rounded-full mb-3 ${compact ? "w-10 h-0.5" : "w-12 h-0.5"}`} style={{ backgroundColor: "var(--accent-gold)" }} />
+      <div className={`font-general leading-relaxed ${compact ? "text-sm" : "text-base"}`} style={{ color: "var(--primary-blue)" }}>
         {children}
       </div>
     </div>
@@ -165,10 +173,16 @@ export function ProfileView({
   preferences,
   isOwnProfile,
   forceShowContact = false,
+  layoutVariant = "default",
   userId,
   currentUserId,
   unlockedProfileIds = [],
 }: ProfileViewProps) {
+  const compact = layoutVariant === "compact";
+  /** Contact chips: tighter in admin modal */
+  const contactPillOwn = compact
+    ? "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--primary-blue)]/12 bg-slate-50 text-xs font-medium text-[var(--primary-blue)]"
+    : "flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)]";
   const router = useRouter();
   const age = formatAge(profile.date_of_birth);
   const location = [profile.city, profile.state, profile.country].filter(Boolean).join(", ");
@@ -257,6 +271,15 @@ export function ProfileView({
     };
   }, [enlargedPhotoIndex]);
 
+  useEffect(() => {
+    if (enlargedPhotoIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEnlargedPhotoIndex(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enlargedPhotoIndex]);
+
   // Show all sections (education, occupation, family, partner preference) when viewing a profile
   const showEducation = true;
   const showOccupation = true;
@@ -316,16 +339,18 @@ export function ProfileView({
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto">
+    <div className={`max-w-5xl mx-auto ${compact ? "space-y-4 sm:space-y-5" : "space-y-6 sm:space-y-8"}`}>
       {/* 1. HERO SECTION */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-10" style={cardStyle}>
-        
-        {/* Avatar / Main Photo */}
-        <div 
-          className="flex-shrink-0 relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden border-4 border-white shadow-[0_15px_35px_rgba(25,80,150,0.15)] bg-gray-50 flex items-center justify-center cursor-pointer group"
+      <div
+        className={`bg-white flex flex-col md:flex-row items-stretch md:items-start border border-[rgba(212,175,55,0.12)] shadow-sm ${compact ? "rounded-2xl p-4 sm:p-5 gap-4 sm:gap-6" : "rounded-3xl p-6 sm:p-10 gap-6 sm:gap-10"}`}
+        style={compact ? undefined : cardStyle}
+      >
+        {/* Avatar / Main Photo — fixed aspect box so portrait/landscape always fill frame */}
+        <div
+          className={`flex-shrink-0 relative mx-auto md:mx-0 rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/[0.06] shadow-inner cursor-pointer group aspect-square ${compact ? "w-[min(100%,11rem)] sm:w-44 md:w-48" : "w-[min(100%,14rem)] sm:w-48 md:w-56"}`}
           onClick={() => {
             if (displayPhoto?.id) {
-              const idx = sortedPhotos.findIndex(p => p.id === displayPhoto.id);
+              const idx = sortedPhotos.findIndex((p) => p.id === displayPhoto.id);
               setEnlargedPhotoIndex(idx >= 0 ? idx : 0);
             }
           }}
@@ -336,21 +361,25 @@ export function ProfileView({
                 src={displayPhoto.photo_url}
                 alt={profile.full_name}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
                 unoptimized
-                sizes="(max-width: 768px) 176px, 224px"
+                sizes={compact ? "(max-width: 768px) 176px, 192px" : "(max-width: 768px) 176px, 224px"}
                 priority
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
             </>
           ) : (
-            <User className="h-16 w-16 text-gray-300" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <User className={`text-gray-300 ${compact ? "h-14 w-14" : "h-16 w-16"}`} />
+            </div>
           )}
         </div>
 
         {/* Info */}
-        <div className="flex-1 text-center md:text-left flex flex-col justify-center h-full pt-0 md:pt-4">
-          <h1 className="font-playfair-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--primary-blue)] mb-3 sm:mb-4 tracking-tight">
+        <div className="flex-1 min-w-0 text-center md:text-left flex flex-col justify-center pt-0 md:pt-1">
+          <h1
+            className={`font-playfair-display font-bold text-[var(--primary-blue)] tracking-tight ${compact ? "text-2xl sm:text-3xl mb-2" : "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-3 sm:mb-4"}`}
+          >
             <span className="inline-flex items-center gap-3">
               {profile.full_name}
               {isOwnProfile && !isVisible && (
@@ -366,7 +395,9 @@ export function ProfileView({
             </span>
           </h1>
           
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 text-base sm:text-lg font-general text-[var(--primary-blue)]/90 mb-6">
+          <div
+            className={`flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 font-general text-[var(--primary-blue)]/90 ${compact ? "text-sm sm:text-base mb-4" : "text-base sm:text-lg gap-4 sm:gap-6 mb-6"}`}
+          >
             <span className="flex items-center gap-2 shrink-0">
               <Calendar className="w-5 h-5 text-[var(--accent-gold)]" />
               {age} years
@@ -429,32 +460,32 @@ export function ProfileView({
             {/* Contact Info Section */}
           {isOwnProfile || forceShowContact ? (
               /* Own profile: show contact info directly */
-              <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+              <div className={`flex flex-wrap justify-center sm:justify-start ${compact ? "gap-2" : "gap-3"}`}>
                 {profile.contact_number && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)]">
-                    <Phone className="w-4 h-4 text-[var(--accent-gold)]" />
+                  <div className={contactPillOwn}>
+                    <Phone className={`shrink-0 text-[var(--accent-gold)] ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
                     {profile.contact_number}
                   </div>
                 )}
                 {profile.permanent_address && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)] max-w-full">
-                    <Home className="w-4 h-4 shrink-0 text-[var(--accent-gold)]" />
+                  <div className={`${contactPillOwn} max-w-full`}>
+                    <Home className={`shrink-0 text-[var(--accent-gold)] ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
                     <span className="truncate" title={profile.permanent_address}>
                       Permanent: {profile.permanent_address}
                     </span>
                   </div>
                 )}
                 {profile.current_address && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)] max-w-full">
-                    <Home className="w-4 h-4 shrink-0 text-[var(--accent-gold)]" />
+                  <div className={`${contactPillOwn} max-w-full`}>
+                    <Home className={`shrink-0 text-[var(--accent-gold)] ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
                     <span className="truncate" title={profile.current_address}>
                       Current: {profile.current_address}
                     </span>
                   </div>
                 )}
                 {profile.email && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--primary-blue)]/15 bg-blue-50/40 text-sm font-semibold text-[var(--primary-blue)]">
-                    <Mail className="w-4 h-4 text-[var(--accent-gold)]" />
+                  <div className={`${contactPillOwn} break-all`}>
+                    <Mail className={`shrink-0 text-[var(--accent-gold)] ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
                     {profile.email}
                   </div>
                 )}
@@ -609,17 +640,17 @@ export function ProfileView({
       )}
 
       {/* 2. GRID DETAILS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? "gap-4" : "gap-6 sm:gap-8"}`}>
         {/* Left Column */}
         <div className="space-y-6 sm:space-y-8">
           {profile.about_me && (
-            <Section title="About Me" icon={User} visible>
+            <Section title="About Me" icon={User} visible compact={compact}>
               <p className="whitespace-pre-wrap leading-relaxed opacity-95">{profile.about_me}</p>
             </Section>
           )}
 
           {(profile.school || profile.highest_education || profile.college_university || profile.field_of_study) && (
-            <Section title="Education" icon={GraduationCap} visible>
+            <Section title="Education" icon={GraduationCap} visible compact={compact}>
               <div className="space-y-5">
                 {profile.school && <p><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">School</span><span className="font-medium text-[15px]">{profile.school}</span></p>}
                 {profile.college_university && <p><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">College / University</span><span className="font-medium text-[15px]">{profile.college_university}</span></p>}
@@ -631,7 +662,7 @@ export function ProfileView({
           )}
 
           {(profile.height_cm || profile.marital_status || profile.complexion || profile.birthplace || profile.gotra || profile.willing_to_relocate || profile.religion || profile.mother_tongue) && (
-            <Section title="Basic Details" icon={Ruler} visible>
+            <Section title="Basic Details" icon={Ruler} visible compact={compact}>
               <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                 {profile.height_cm && <div><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">Height</span><span className="font-medium text-[15px]">{profile.height_cm} cm</span></div>}
                 {profile.marital_status && <div><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">Status</span><span className="capitalize font-medium text-[15px]">{profile.marital_status.replace('_', ' ')}</span></div>}
@@ -649,7 +680,7 @@ export function ProfileView({
         {/* Right Column */}
         <div className="space-y-6 sm:space-y-8">
           {(profile.father_name || profile.mother_name || profile.has_siblings || profile.siblings_brothers != null || profile.siblings_sisters != null || profile.siblings_count != null) && (
-              <Section title="Family Background" icon={Users} visible>
+              <Section title="Family Background" icon={Users} visible compact={compact}>
                 <div className="space-y-5">
                   {profile.father_name && (
                     <p><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">Father</span><span className="font-medium text-[15px]">{profile.father_name}{profile.father_occupation ? ` · ${profile.father_occupation}` : ""}</span></p>
@@ -673,7 +704,7 @@ export function ProfileView({
             )}
 
           {preferences && (preferences.age_min != null || preferences.age_max != null || preferences.additional_notes || preferences.gotra) && (
-            <Section title="Partner Preferences" icon={Heart} visible>
+            <Section title="Partner Preferences" icon={Heart} visible compact={compact}>
               <div className="space-y-5">
                 {preferences.age_min != null && preferences.age_max != null && (
                   <p><span className="font-semibold opacity-70 block text-xs uppercase tracking-wider mb-1">Age Range</span><span className="font-medium text-[15px]">{preferences.age_min} to {preferences.age_max} years</span></p>
@@ -688,58 +719,78 @@ export function ProfileView({
         </div>
       </div>
 
-      {/* Lightbox Modal */}
-      {enlargedPhotoIndex !== null && (
-        <div 
-          className="fixed top-0 left-0 w-screen h-screen z-[9999] bg-black/40 flex items-center justify-center p-4 sm:p-8 cursor-zoom-out backdrop-blur-md transition-all duration-300"
-          onClick={() => setEnlargedPhotoIndex(null)}
-        >
-          <div 
-            className="relative inline-block cursor-default select-none" 
-            onClick={(e) => e.stopPropagation()}
+      {/* Lightbox: portaled to document.body so it isn’t clipped or wrongly sized inside transformed parents (e.g. Radix Dialog). */}
+      {enlargedPhotoIndex !== null &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4 sm:p-8 backdrop-blur-sm cursor-zoom-out"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Profile photo viewer"
+            onClick={() => setEnlargedPhotoIndex(null)}
           >
-            <img 
-              src={sortedPhotos[enlargedPhotoIndex]?.photo_url} 
-              alt="Enlarged profile photo" 
-              className="max-w-[95vw] max-h-[90vh] rounded-3xl object-scale-down shadow-[0_20px_60px_rgba(0,0,0,0.5)] bg-slate-900/50" 
-            />
-            
-            {/* Close button inside the true image boundary (pinned to top-right corner) */}
-            <button 
-              className="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 backdrop-blur-md transition-all duration-200 shadow-lg"
-              onClick={() => setEnlargedPhotoIndex(null)}
-            >
-              <X className="w-5 h-5 flex-shrink-0" />
-            </button>
-
-            {/* Navigation Left */}
             {sortedPhotos.length > 1 && (
-              <>
-                <button
-                  className="absolute top-1/2 left-4 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full p-3 backdrop-blur-md transition-all duration-200 shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEnlargedPhotoIndex((prev) => (prev === 0 ? sortedPhotos.length - 1 : prev! - 1));
-                  }}
-                >
-                  <ChevronLeft className="w-6 h-6 flex-shrink-0" />
-                </button>
-
-                {/* Navigation Right */}
-                <button
-                  className="absolute top-1/2 right-4 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full p-3 backdrop-blur-md transition-all duration-200 shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEnlargedPhotoIndex((prev) => (prev === sortedPhotos.length - 1 ? 0 : prev! + 1));
-                  }}
-                >
-                  <ChevronRight className="w-6 h-6 flex-shrink-0" />
-                </button>
-              </>
+              <button
+                type="button"
+                className="fixed left-2 sm:left-5 top-1/2 z-[201] -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 text-white p-3 shadow-lg backdrop-blur-md border border-white/20 transition-colors cursor-pointer"
+                aria-label="Previous photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEnlargedPhotoIndex((prev) => {
+                    const i = prev ?? 0;
+                    return i === 0 ? sortedPhotos.length - 1 : i - 1;
+                  });
+                }}
+              >
+                <ChevronLeft className="w-6 h-6 shrink-0" />
+              </button>
             )}
-          </div>
-        </div>
-      )}
+
+            <div
+              className="relative max-h-[min(88vh,920px)] max-w-[min(96vw,1200px)] cursor-default select-none flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- needs natural sizing with object-contain in lightbox */}
+              <img
+                src={sortedPhotos[enlargedPhotoIndex]?.photo_url}
+                alt={`${profile.full_name} — photo ${(enlargedPhotoIndex ?? 0) + 1} of ${sortedPhotos.length}`}
+                className="max-h-[min(88vh,920px)] max-w-full w-auto h-auto object-contain rounded-xl shadow-2xl ring-1 ring-white/20 bg-black/20"
+                draggable={false}
+              />
+            </div>
+
+            {sortedPhotos.length > 1 && (
+              <button
+                type="button"
+                className="fixed right-2 sm:right-5 top-1/2 z-[201] -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 text-white p-3 shadow-lg backdrop-blur-md border border-white/20 transition-colors cursor-pointer"
+                aria-label="Next photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEnlargedPhotoIndex((prev) => {
+                    const i = prev ?? 0;
+                    return i === sortedPhotos.length - 1 ? 0 : i + 1;
+                  });
+                }}
+              >
+                <ChevronRight className="w-6 h-6 shrink-0" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[201] rounded-full bg-white/15 hover:bg-white/25 text-white p-2.5 shadow-lg backdrop-blur-md border border-white/25 transition-colors cursor-pointer"
+              aria-label="Close photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEnlargedPhotoIndex(null);
+              }}
+            >
+              <X className="w-5 h-5 shrink-0" />
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
