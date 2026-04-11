@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import type { AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -24,7 +25,7 @@ export function AuthCrossTabSync() {
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event !== "SIGNED_OUT") return;
       if (typeof window === "undefined") return;
       const path = window.location.pathname;

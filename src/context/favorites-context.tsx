@@ -49,7 +49,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         .select("profile_id")
         .eq("user_id", user.id);
       if (!error && data) {
-        setFavorites(new Set(data.map((r) => r.profile_id)));
+        setFavorites(new Set(data.map((r: { profile_id: string }) => r.profile_id)));
       } else {
         setFavorites(new Set());
       }

@@ -43,6 +43,11 @@ import {
 } from "./profile-photo-upload";
 import { OnboardingChecklist } from "./onboarding-checklist";
 import { dateOfBirthSchema, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/lib/auth/age-validation";
+import {
+  isAbortLikeError,
+  userFacingAbortMessage,
+} from "@/lib/network-errors";
+import type { User } from "@supabase/supabase-js";
 
 // Step 0: name, DOB, time, birthplace, gender, marital
 const step0Schema = z.object({
@@ -160,6 +165,10 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
   const [error, setError] = useState<string | null>(null);
 
   const formatDbError = (context: string, err: unknown) => {
+    if (isAbortLikeError(err)) {
+      console.warn("[onboarding-db-error] abort-like", { context });
+      return userFacingAbortMessage();
+    }
     const e = err as { message?: string; code?: string; details?: string; hint?: string };
     const payload = {
       context,
@@ -171,6 +180,26 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
     console.error("[onboarding-db-error]", payload);
     return e?.message || "Something went wrong";
   };
+
+  async function getSessionUserWithRetry(
+    supabase: ReturnType<typeof createClient>
+  ): Promise<{ user: User | null; error: { message?: string } | null }> {
+    let lastError: { message?: string } | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      lastError = error;
+      if (user) return { user, error: null };
+      if (error && isAbortLikeError(error) && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 350));
+        continue;
+      }
+      break;
+    }
+    return { user: null, error: lastError };
+  }
 
   useEffect(() => {
     if (isFinalizing) return;
@@ -324,12 +353,13 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
     let photosFlowNavigatedAway = false;
 
     try {
-      const {
-        data: { user: currentUser },
-        error: authErr,
-      } = await supabase.auth.getUser();
-      if (authErr || !currentUser) {
-        setError("Session expired. Please sign in again.");
+      const { user: currentUser, error: authErr } = await getSessionUserWithRetry(supabase);
+      if (!currentUser) {
+        if (authErr && isAbortLikeError(authErr)) {
+          setError(userFacingAbortMessage());
+        } else {
+          setError("Session expired. Please sign in again.");
+        }
         return;
       }
       const effectiveUserId = currentUser.id;
@@ -530,7 +560,11 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
       } else {
         console.error("[onboarding-submit-error]", { step, err });
       }
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (isAbortLikeError(err)) {
+        setError(userFacingAbortMessage());
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
       setSaving(false);
       if (step === PHOTOS_STEP_INDEX && !photosFlowNavigatedAway) {
