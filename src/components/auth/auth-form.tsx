@@ -43,7 +43,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 
 const inputErrorClass = "text-red-500 text-sm";
 
-const RESEND_VERIFICATION_COOLDOWN_MS = 60_000;
+const RESEND_VERIFICATION_COOLDOWN_MS = 120_000;
 
 function verificationResendStorageKey(email: string): string {
   return `pg_verify_resend_until_${email.trim().toLowerCase()}`;
@@ -65,7 +65,7 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
   const [resending, setResending] = useState(false);
   /** Unix ms; until then resend is disabled (client + server-aligned cooldown). */
   const [resendNotBefore, setResendNotBefore] = useState<number | null>(null);
-  const [resendCountdownTick, setResendCountdownTick] = useState(0);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const isSignUp = mode === "sign-up";
 
@@ -92,7 +92,7 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
 
   useEffect(() => {
     if (!resendNotBefore || resendNotBefore <= Date.now()) return;
-    const id = window.setInterval(() => setResendCountdownTick((t) => t + 1), 1000);
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [resendNotBefore]);
 
@@ -131,6 +131,16 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
         text: "Check your email for the confirmation link to complete sign up.",
       });
       setPendingVerificationEmail(data.email);
+      const until = Date.now() + RESEND_VERIFICATION_COOLDOWN_MS;
+      setResendNotBefore(until);
+      try {
+        localStorage.setItem(
+          verificationResendStorageKey(data.email),
+          JSON.stringify({ until })
+        );
+      } catch {
+        // ignore
+      }
       return;
     }
 
@@ -190,7 +200,7 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
               aria-busy={resending}
               disabled={
                 resending ||
-                (resendNotBefore !== null && Date.now() < resendNotBefore)
+                (resendNotBefore !== null && nowMs < resendNotBefore)
               }
               onClick={async () => {
                 if (!pendingVerificationEmail) return;
@@ -254,12 +264,9 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
               {resending ? <Spinner size="sm" /> : null}
               {resending
                 ? "Sending…"
-                : (() => {
-                    void resendCountdownTick;
-                    return resendNotBefore !== null && Date.now() < resendNotBefore
-                      ? `Wait ${Math.max(1, Math.ceil((resendNotBefore - Date.now()) / 1000))}s`
-                      : "Resend";
-                  })()}
+                : resendNotBefore !== null && nowMs < resendNotBefore
+                  ? `Wait ${Math.max(1, Math.ceil((resendNotBefore - nowMs) / 1000))}s`
+                  : "Resend"}
             </button>
           </div>
         )}
