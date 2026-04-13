@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getSiteUrl } from "@/lib/site";
+import { memberSignUp } from "@/lib/auth/member-sign-up";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import type { AuthFormData, UserType } from "../types/auth";
 
@@ -46,17 +46,14 @@ export function useAuth() {
   const signUp = async (data: AuthFormData, _userType: UserType) => {
     setIsLoading(true);
     setError(null);
-    const { error: e } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=/hi`,
-      },
-    });
+    const result = await memberSignUp(data.email, data.password);
     setIsLoading(false);
-    if (e) {
-      setError(e.message);
+    if (!result.ok) {
+      setError(result.error);
       return;
+    }
+    if (result.identitiesEmpty) {
+      setError("An account with this email already exists. Please log in.");
     }
   };
 

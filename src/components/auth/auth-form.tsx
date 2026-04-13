@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { getPostLoginRedirect } from "@/lib/post-login-redirect";
 import { getSiteUrl } from "@/lib/site";
+import { memberSignUp } from "@/lib/auth/member-sign-up";
 import type { AuthFormData } from "../types/auth";
 import { PASSWORD_REQUIREMENT_HINT, signupPasswordSchema } from "@/lib/auth/password-policy";
 import { authFormAccentLinkClass, authFormLegalLinkClass } from "@/components/auth/auth-accent-link";
@@ -113,29 +114,16 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
     const supabase = createClient();
 
     if (isSignUp) {
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${getSiteUrl()}/auth/callback?next=/hi`,
-        },
-      });
-      if (error) {
-        const code = "code" in error ? String((error as { code?: string }).code ?? "") : "";
-        const rateLimited =
-          code === "over_email_send_rate_limit" ||
-          (error.message ?? "").toLowerCase().includes("rate limit");
-        setMessage({
-          type: "error",
-          text: rateLimited
-            ? "We’ve temporarily limited sending verification emails — please try again in about an hour. If you’re testing, wait before signing up again; for production, add custom SMTP in Supabase (Authentication) for higher limits."
-            : error.message,
-        });
+      const result = await memberSignUp(data.email, data.password);
+      if (!result.ok) {
+        setMessage({ type: "error", text: result.error });
         return;
       }
-
-      if (signUpData?.user?.identities?.length === 0) {
-        setMessage({ type: "error", text: "An account with this email already exists. Please log in." });
+      if (result.identitiesEmpty) {
+        setMessage({
+          type: "error",
+          text: "An account with this email already exists. Please log in.",
+        });
         return;
       }
       setMessage({

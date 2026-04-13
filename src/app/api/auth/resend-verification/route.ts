@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/site";
+import { createServiceRoleClient } from "@/lib/supabase/server-service";
+import {
+  isResendConfigured,
+  sendTransactionalEmailResend,
+  buildAuthContinueEmail,
+  sendSignupConfirmationViaSupabaseSmtp,
+} from "@/lib/auth/resend-outbound";
 
 /**
  * Rate limits resend verification (in-memory). Mitigates email bombing; best-effort per server instance.
@@ -8,12 +14,12 @@ import { getSiteUrl } from "@/lib/site";
  */
 export const dynamic = "force-dynamic";
 
-/** Access: **public** — anon Supabase auth client + rate limits; see `@/lib/api-route-access`. */
+/** Access: **public** — Resend first (magic link from Admin API), then Supabase `auth.resend` (SMTP). */
 
 /** Minimum gap between any resend requests for the same email (ms) — limits failed-call spam too. */
 const MIN_REQUEST_GAP_MS = 15_000;
 /** Minimum gap between successful resends for the same email (ms). */
-const EMAIL_COOLDOWN_MS = 60_000;
+const EMAIL_COOLDOWN_MS = 2 * 60 * 1000;
 /** Sliding window for IP-based cap (ms). */
 const IP_WINDOW_MS = 60 * 60 * 1000;
 /** Max successful resends per IP per window (many distinct emails still capped). */
@@ -69,7 +75,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const emailRaw = typeof body === "object" && body !== null && "email" in body ? (body as { email?: unknown }).email : undefined;
+  const emailRaw =
+    typeof body === "object" && body !== null && "email" in body ? (body as { email?: unknown }).email : undefined;
   const email = typeof emailRaw === "string" ? emailRaw : "";
   const emailNorm = normalizeEmail(email);
   if (!emailNorm || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
@@ -120,26 +127,48 @@ export async function POST(request: Request) {
     );
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
-  }
-
-  // Always use configured public URL so emails never point at preview / Vercel hosts from Origin.
   const emailRedirectTo = `${getSiteUrl()}/auth/callback?next=/hi`;
 
-  const supabase = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error } = await supabase.auth.resend({
-    type: "signup",
-    email: emailNorm,
-    options: { emailRedirectTo },
-  });
+  let resendPrimaryError: string | null = null;
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (isResendConfigured()) {
+    try {
+      const admin = createServiceRoleClient();
+      const { data, error } = await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email: emailNorm,
+        options: { redirectTo: emailRedirectTo },
+      });
+      if (!error && data?.properties?.action_link) {
+        const { subject, text, html } = buildAuthContinueEmail(data.properties.action_link);
+        const sent = await sendTransactionalEmailResend({
+          to: emailNorm,
+          subject,
+          text,
+          html,
+        });
+        if (sent.ok) {
+          recordSuccessfulResend(emailNorm, ip);
+          return NextResponse.json({ ok: true });
+        }
+        resendPrimaryError = sent.error;
+      } else {
+        resendPrimaryError = error?.message ?? "Could not generate verification link";
+      }
+    } catch {
+      resendPrimaryError = "Could not use Resend path (check SUPABASE_SERVICE_ROLE_KEY).";
+    }
   }
 
-  recordSuccessfulResend(emailNorm, ip);
-  return NextResponse.json({ ok: true });
+  const viaSupabase = await sendSignupConfirmationViaSupabaseSmtp(emailNorm, emailRedirectTo);
+  if (viaSupabase.ok) {
+    recordSuccessfulResend(emailNorm, ip);
+    return NextResponse.json({ ok: true });
+  }
+
+  const message = resendPrimaryError
+    ? `${resendPrimaryError} Supabase SMTP: ${viaSupabase.error}`
+    : viaSupabase.error;
+
+  return NextResponse.json({ error: message }, { status: 400 });
 }
