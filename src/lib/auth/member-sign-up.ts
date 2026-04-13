@@ -6,6 +6,10 @@ import { getSiteUrl } from "@/lib/site";
 /** Supabase built-in mailer often returns this when SMTP is not set or fails. */
 export function mapSignUpEmailError(raw: string): string {
   const m = raw.toLowerCase();
+  const cooldownMatch = m.match(/after\s+(\d+)\s+seconds?/);
+  if (m.includes("for security purposes") && cooldownMatch) {
+    return `Please wait ${cooldownMatch[1]} seconds before requesting another verification email.`;
+  }
   if (
     m.includes("error sending confirmation email") ||
     m.includes("sending confirmation email") ||

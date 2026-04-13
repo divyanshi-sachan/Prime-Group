@@ -192,6 +192,15 @@ export async function POST(request: Request) {
     recordSignup(emailNorm, ip);
     return NextResponse.json({ ok: true });
   }
+  if (viaSupabase.cooldownSec) {
+    await admin.auth.admin.deleteUser(userId).catch(() => {
+      /* best-effort rollback */
+    });
+    return NextResponse.json(
+      { error: viaSupabase.error, code: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(viaSupabase.cooldownSec) } }
+    );
+  }
 
   await admin.auth.admin.deleteUser(userId).catch(() => {
     /* best-effort rollback */

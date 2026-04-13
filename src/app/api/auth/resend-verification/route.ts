@@ -165,6 +165,12 @@ export async function POST(request: Request) {
     recordSuccessfulResend(emailNorm, ip);
     return NextResponse.json({ ok: true });
   }
+  if (viaSupabase.cooldownSec) {
+    return NextResponse.json(
+      { error: viaSupabase.error, code: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(viaSupabase.cooldownSec) } }
+    );
+  }
 
   const message = resendPrimaryError
     ? `${resendPrimaryError} Supabase SMTP: ${viaSupabase.error}`

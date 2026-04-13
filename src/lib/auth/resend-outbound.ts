@@ -8,7 +8,7 @@ const RESEND_API = "https://api.resend.com/emails";
 export async function sendSignupConfirmationViaSupabaseSmtp(
   emailNorm: string,
   emailRedirectTo: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; cooldownSec?: number }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
@@ -22,7 +22,20 @@ export async function sendSignupConfirmationViaSupabaseSmtp(
     email: emailNorm,
     options: { emailRedirectTo },
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    const raw = error.message ?? "Could not send email";
+    const m = raw.toLowerCase();
+    const match = m.match(/after\s+(\d+)\s+seconds?/);
+    const cooldownSec = match ? Number(match[1]) : undefined;
+    if (m.includes("for security purposes") && Number.isFinite(cooldownSec)) {
+      return {
+        ok: false,
+        error: `Please wait ${cooldownSec} seconds before requesting another verification email.`,
+        cooldownSec,
+      };
+    }
+    return { ok: false, error: raw };
+  }
   return { ok: true };
 }
 
