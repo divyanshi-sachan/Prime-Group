@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,10 +139,15 @@ function ProfileActionButtons({
   );
 }
 
+const PROFILES_PER_PAGE = 50;
+
 export default function AdminProfilesPage() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -167,10 +172,26 @@ export default function AdminProfilesPage() {
     }
   }, [viewMode]);
 
-  const fetchProfiles = async () => {
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearch]);
+
+  const fetchProfiles = useCallback(async (pageOverride?: number) => {
+    const effectivePage = pageOverride ?? page;
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/profiles");
+      const params = new URLSearchParams({
+        page: String(effectivePage),
+        perPage: String(PROFILES_PER_PAGE),
+        status: statusFilter,
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      const res = await fetch(`/api/admin/profiles?${params.toString()}`, { credentials: "include" });
       if (!res.ok) {
         let details = "";
         try {
@@ -187,32 +208,35 @@ export default function AdminProfilesPage() {
           details ? `Failed to load profiles: ${details}` : `Failed to load profiles: ${res.status}`
         );
       }
-      const json = (await res.json()) as { profiles?: ProfileRow[] };
+      const json = (await res.json()) as {
+        profiles?: ProfileRow[];
+        total?: number;
+        page?: number;
+        perPage?: number;
+      };
       setProfiles(json.profiles ?? []);
+      setTotal(typeof json.total === "number" ? json.total : 0);
     } catch (e) {
       console.error(e);
       setProfiles([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, debouncedSearch]);
 
   useEffect(() => {
-    fetchProfiles();
-  }, []);
+    void fetchProfiles();
+  }, [fetchProfiles]);
 
-  const filtered = profiles.filter((p) => {
-    const q = search.toLowerCase();
-    const email = profileEmail(p);
-    const matchSearch =
-      !search ||
-      p.full_name?.toLowerCase().includes(q) ||
-      p.city?.toLowerCase().includes(q) ||
-      email.toLowerCase().includes(q) ||
-      (p.contact_number ?? "").toLowerCase().includes(q);
-    const matchStatus = statusFilter === "all" || p.profile_status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const refetchFromStart = useCallback(() => {
+    setPage(1);
+    void fetchProfiles(1);
+  }, [fetchProfiles]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PROFILES_PER_PAGE));
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
 
   const updateStatus = async (profileId: string, newStatus: string) => {
     setStatusUpdatingId(profileId);
@@ -256,6 +280,7 @@ export default function AdminProfilesPage() {
         return;
       }
       setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+      void fetchProfiles();
     } catch (e) {
       console.error(e);
       window.alert(
@@ -279,7 +304,8 @@ export default function AdminProfilesPage() {
             Profiles
           </h1>
           <p className="font-general text-sm mt-1 text-gray-600">
-            Switch between list and cards. Open a profile to view and edit all fields.
+            Paginated list ({PROFILES_PER_PAGE} per page). Search matches name, city, and phone on the server.
+            Open a profile to view and edit all fields.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -295,7 +321,7 @@ export default function AdminProfilesPage() {
             variant="outline"
             className="gap-2 rounded-xl font-general"
             style={{ borderColor: "var(--accent-gold)" }}
-            onClick={() => fetchProfiles()}
+            onClick={() => void fetchProfiles()}
             disabled={loading}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -316,7 +342,7 @@ export default function AdminProfilesPage() {
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Search name, email, phone…"
+                  placeholder="Search name, city, phone…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 rounded-lg border-gray-200"
@@ -371,7 +397,7 @@ export default function AdminProfilesPage() {
             <div className="flex flex-col items-center justify-center py-16 rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
               <Spinner size="md" label="Loading profiles…" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : profiles.length === 0 ? (
             <div className="text-center py-12 text-gray-500 font-general rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
               No profiles found.
             </div>
@@ -387,7 +413,7 @@ export default function AdminProfilesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((p) => (
+                  {profiles.map((p) => (
                     <TableRow key={p.id} className="font-general align-top">
                       <TableCell className="font-semibold py-4" style={{ color: "var(--primary-blue)" }}>
                         <button
@@ -436,7 +462,7 @@ export default function AdminProfilesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filtered.map((p) => (
+              {profiles.map((p) => (
                 <div
                   key={p.id}
                   className="rounded-2xl border bg-white p-5 shadow-sm flex flex-col gap-4 transition-shadow hover:shadow-md"
@@ -502,6 +528,36 @@ export default function AdminProfilesPage() {
               ))}
             </div>
           )}
+
+          {!loading && total > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+              <p className="text-sm text-gray-500 font-general">
+                Page {page} of {totalPages} · {total} profile{total === 1 ? "" : "s"}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canPrev || loading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="font-general rounded-lg"
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canNext || loading}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="font-general rounded-lg"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -517,7 +573,7 @@ export default function AdminProfilesPage() {
       <AdminManualProfileDialog
         open={manualProfileOpen}
         onOpenChange={setManualProfileOpen}
-        onCreated={() => fetchProfiles()}
+        onCreated={refetchFromStart}
       />
     </div>
   );

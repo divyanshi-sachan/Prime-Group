@@ -1,39 +1,16 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
-import { createAdminServerClient } from "@/lib/supabase/server-admin";
-import { createServiceRoleClient } from "@/lib/supabase/server-service";
+import { requireAdminService } from "@/lib/admin/require-admin-service";
 import { adminAuthUserRowFromUser } from "@/lib/admin/auth-user-display-fields";
 
-const ADMIN_ROLES = ["admin", "super_admin"];
 const DEFAULT_PER_PAGE = 50;
 const MAX_PER_PAGE = 100;
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createAdminServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const service = createServiceRoleClient();
-
-    const { data: caller, error: callerError } = await service
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (callerError) {
-      return NextResponse.json({ error: callerError.message }, { status: 500 });
-    }
-
-    if (!caller || !ADMIN_ROLES.includes(caller.role)) {
-      return NextResponse.json({ error: "Forbidden: not an admin" }, { status: 403 });
-    }
+    const gate = await requireAdminService();
+    if (!gate.ok) return gate.response;
+    const { service } = gate;
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);

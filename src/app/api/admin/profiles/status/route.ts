@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminServerClient } from "@/lib/supabase/server-admin";
-import { createServiceRoleClient } from "@/lib/supabase/server-service";
-
-const ADMIN_ROLES = ["admin", "super_admin"];
+import { requireAdminService } from "@/lib/admin/require-admin-service";
 
 const bodySchema = z.object({
   profileId: z.string().uuid(),
@@ -16,30 +13,9 @@ const bodySchema = z.object({
  */
 export async function PATCH(request: Request) {
   try {
-    const supabase = await createAdminServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const service = createServiceRoleClient();
-
-    const { data: caller, error: callerError } = await service
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (callerError) {
-      return NextResponse.json({ error: callerError.message }, { status: 500 });
-    }
-
-    if (!caller || !ADMIN_ROLES.includes(caller.role)) {
-      return NextResponse.json({ error: "Forbidden: not an admin" }, { status: 403 });
-    }
+    const gate = await requireAdminService();
+    if (!gate.ok) return gate.response;
+    const { service } = gate;
 
     const json = await request.json().catch(() => null);
     const parsed = bodySchema.safeParse(json);

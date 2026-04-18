@@ -83,7 +83,8 @@ export default function AdminAuthUsersPage() {
             Browse everyone in Auth, or members who have <span className="font-medium">no active profile</span>{" "}
             in the database (no <span className="font-medium">profiles</span> row with{" "}
             <span className="font-medium">deleted_at</span> null). Anyone with a live profile—including
-            pending or active—is excluded. Name and phone come from Auth metadata when present.
+            pending or active—is excluded. Use <span className="font-medium">All accounts</span> for name and phone
+            from Auth; the no-profile list shows email and activity from the member table only (lighter load).
           </p>
           <div
             className="inline-flex flex-wrap rounded-xl border p-1 bg-white shadow-sm"

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminServerClient } from "@/lib/supabase/server-admin";
-import { createServiceRoleClient } from "@/lib/supabase/server-service";
+import { requireAdminService } from "@/lib/admin/require-admin-service";
 
 const ADMIN_ROLES = ["admin", "super_admin"];
 const ALLOWED_ROLES = ["admin", "super_admin"] as const;
@@ -25,20 +24,10 @@ function isPermissionKey(s: string): s is PermissionKey {
 /** List all admin users (admin + super_admin) with profile info */
 export async function GET() {
   try {
-    const supabase = await createAdminServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const service = createServiceRoleClient();
-    const { data: caller } = await service
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    if (!caller || !ADMIN_ROLES.includes(caller.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const gate = await requireAdminService();
+    if (!gate.ok) return gate.response;
+    const { service } = gate;
+
     const { data: admins, error } = await service
       .from("users")
       .select(`
@@ -48,7 +37,7 @@ export async function GET() {
         status,
         permissions,
         created_at,
-        profiles ( full_name, city, profile_status )
+        profiles!profiles_user_id_fkey ( full_name, city, profile_status )
       `)
       .in("role", ADMIN_ROLES)
       .order("created_at", { ascending: false });
@@ -67,20 +56,10 @@ export async function GET() {
 /** Create or update an admin: set role and permissions for a user. Only admins can call. */
 export async function POST(request: Request) {
   try {
-    const supabase = await createAdminServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const service = createServiceRoleClient();
-    const { data: caller } = await service
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    if (!caller || !ADMIN_ROLES.includes(caller.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const gate = await requireAdminService();
+    if (!gate.ok) return gate.response;
+    const { service } = gate;
+
     const body = await request.json().catch(() => ({}));
     const { userId, role, permissions } = body as {
       userId?: string;

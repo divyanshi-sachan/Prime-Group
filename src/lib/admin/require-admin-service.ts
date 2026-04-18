@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server-service";
 const ADMIN_ROLES = ["admin", "super_admin"] as const;
 
 export type AdminServiceGate =
-  | { ok: true; service: ReturnType<typeof createServiceRoleClient> }
+  | { ok: true; service: ReturnType<typeof createServiceRoleClient>; userId: string }
   | { ok: false; response: NextResponse };
 
 /** Verifies admin session and returns a service-role client (bypasses RLS / storage policies). */
@@ -34,5 +34,5 @@ export async function requireAdminService(): Promise<AdminServiceGate> {
     return { ok: false, response: NextResponse.json({ error: "Forbidden: not an admin" }, { status: 403 }) };
   }
 
-  return { ok: true, service };
+  return { ok: true, service, userId: user.id };
 }

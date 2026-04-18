@@ -3,23 +3,34 @@ import { requireAdminService } from "@/lib/admin/require-admin-service";
 
 export const dynamic = "force-dynamic";
 
-const PAGE = 1000;
+type DashboardPayload = {
+  stats: {
+    totalUsers: number;
+    totalProfiles: number;
+    pendingProfiles: number;
+    activeProfiles: number;
+    newUsersLast7: number;
+    newProfilesLast7: number;
+  };
+  revenue: {
+    total: number;
+    thisMonth: number;
+    byPlan: { plan_id: string | null; sum: number }[];
+  };
+  byGender: { name: string; count: number; pct: number }[];
+  byReligion: { name: string; count: number; pct: number }[];
+  byStatus: { name: string; count: number; pct: number }[];
+  byCity: { name: string; count: number; pct: number }[];
+};
 
-async function fetchAllRows<T extends Record<string, unknown>>(
-  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
-): Promise<T[]> {
-  const out: T[] = [];
-  let from = 0;
-  for (;;) {
-    const to = from + PAGE - 1;
-    const { data, error } = await fetchPage(from, to);
-    if (error) throw new Error(error.message);
-    const chunk = data ?? [];
-    out.push(...chunk);
-    if (chunk.length < PAGE) break;
-    from += PAGE;
-  }
-  return out;
+function normalizeByPlan(raw: unknown): { plan_id: string | null; sum: number }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => {
+    const r = row as { plan_id?: string | null | unknown; sum?: number };
+    const rawId = r.plan_id;
+    const id = rawId == null || rawId === "" ? null : String(rawId);
+    return { plan_id: id, sum: typeof r.sum === "number" ? r.sum : Number(r.sum) || 0 };
+  });
 }
 
 export async function GET() {
@@ -27,158 +38,60 @@ export async function GET() {
   if (!gate.ok) return gate.response;
   const { service } = gate;
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
   try {
-    const [
-      usersCountRes,
-      profilesTotalRes,
-      profilesPendingRes,
-      profilesActiveRes,
-      usersLast7Res,
-      profilesLast7Res,
-      plansRes,
-    ] = await Promise.all([
-      service.from("users").select("*", { count: "exact", head: true }),
-      service.from("profiles").select("*", { count: "exact", head: true }).is("deleted_at", null),
-      service
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .eq("profile_status", "pending"),
-      service
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .eq("profile_status", "active"),
-      service.from("users").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-      service
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .gte("created_at", sevenDaysAgo),
+    const [{ data: payload, error: rpcError }, plansRes] = await Promise.all([
+      service.rpc("admin_dashboard_stats_payload"),
       service.from("plans").select("id, name").order("display_order", { ascending: true }),
     ]);
 
-    const countErr =
-      usersCountRes.error ||
-      profilesTotalRes.error ||
-      profilesPendingRes.error ||
-      profilesActiveRes.error ||
-      usersLast7Res.error ||
-      profilesLast7Res.error ||
-      plansRes.error;
-    if (countErr) {
-      return NextResponse.json({ error: countErr.message }, { status: 500 });
+    if (rpcError) {
+      const msg = rpcError.message ?? "";
+      const missingFn =
+        msg.includes("Could not find the function") ||
+        msg.includes("does not exist") ||
+        msg.includes("schema cache");
+      return NextResponse.json(
+        {
+          error: missingFn
+            ? "Database function admin_dashboard_stats_payload is missing. Apply migration 20260418150000_admin_dashboard_stats_payload.sql in the Supabase SQL editor or run supabase db push."
+            : msg,
+        },
+        { status: 500 }
+      );
     }
 
-    const profiles = await fetchAllRows<{
-      profile_status: string;
-      gender: string | null;
-      religion: string | null;
-      city: string | null;
-    }>(async (from, to) =>
-      service
-        .from("profiles")
-        .select("profile_status, gender, religion, city")
-        .is("deleted_at", null)
-        .range(from, to)
-    );
+    const body = (payload ?? {}) as Record<string, unknown>;
+    const stats = body.stats as DashboardPayload["stats"] | undefined;
+    const revenueRaw = body.revenue as Record<string, unknown> | undefined;
+    const revenue: DashboardPayload["revenue"] = {
+      total: typeof revenueRaw?.total === "number" ? revenueRaw.total : Number(revenueRaw?.total) || 0,
+      thisMonth:
+        typeof revenueRaw?.thisMonth === "number" ? revenueRaw.thisMonth : Number(revenueRaw?.thisMonth) || 0,
+      byPlan: normalizeByPlan(revenueRaw?.byPlan),
+    };
 
-    const totalProfiles = profilesTotalRes.count ?? profiles.length;
-    const pendingProfiles = profilesPendingRes.count ?? 0;
-    const activeProfiles = profilesActiveRes.count ?? 0;
-
-    const payments = await fetchAllRows<{
-      amount: number;
-      paid_at: string | null;
-      plan_id: string | null;
-      created_at: string;
-    }>(async (from, to) =>
-      service
-        .from("payments")
-        .select("amount, paid_at, plan_id, created_at")
-        .eq("status", "success")
-        .range(from, to)
-    );
-
-    const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
-    const now = new Date();
-    const thisMonth = payments
-      .filter((p) => {
-        const dateStr = p.paid_at || p.created_at;
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      })
-      .reduce((s, p) => s + (p.amount || 0), 0);
-
-    const byPlanMap = new Map<string | null, number>();
-    payments.forEach((p) => {
-      const key = p.plan_id ?? null;
-      byPlanMap.set(key, (byPlanMap.get(key) ?? 0) + (p.amount || 0));
-    });
-
-    const toPct = (n: number) => (totalProfiles ? Math.round((n / totalProfiles) * 100) : 0);
-
-    const genderCounts = Object.entries(
-      profiles.reduce<Record<string, number>>((acc, p) => {
-        const g = p.gender || "other";
-        acc[g] = (acc[g] ?? 0) + 1;
-        return acc;
-      }, {})
-    ).map(([name, count]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      count,
-      pct: toPct(count),
-    }));
-
-    const religionCounts = Object.entries(
-      profiles.reduce<Record<string, number>>((acc, p) => {
-        const r = p.religion || "Not specified";
-        acc[r] = (acc[r] ?? 0) + 1;
-        return acc;
-      }, {})
-    ).map(([name, count]) => ({ name, count, pct: toPct(count) }));
-
-    const rejected = profiles.filter((p) => p.profile_status === "rejected").length;
-    const suspended = profiles.filter((p) => p.profile_status === "suspended").length;
-
-    const byStatus = [
-      { name: "Pending", count: pendingProfiles, pct: toPct(pendingProfiles) },
-      { name: "Active", count: activeProfiles, pct: toPct(activeProfiles) },
-      { name: "Rejected", count: rejected, pct: toPct(rejected) },
-      { name: "Suspended", count: suspended, pct: toPct(suspended) },
-    ].filter((s) => s.count > 0);
-
-    const cityCounts = Object.entries(
-      profiles.reduce<Record<string, number>>((acc, p) => {
-        const c = p.city?.trim() || "Not specified";
-        acc[c] = (acc[c] ?? 0) + 1;
-        return acc;
-      }, {})
-    ).map(([name, count]) => ({ name, count, pct: toPct(count) }));
-
-    return NextResponse.json({
-      stats: {
-        totalUsers: usersCountRes.count ?? 0,
-        totalProfiles,
-        pendingProfiles,
-        activeProfiles,
-        newUsersLast7: usersLast7Res.count ?? 0,
-        newProfilesLast7: profilesLast7Res.count ?? 0,
+    const out: DashboardPayload & { plans: { id: string; name: string }[] } = {
+      stats: stats ?? {
+        totalUsers: 0,
+        totalProfiles: 0,
+        pendingProfiles: 0,
+        activeProfiles: 0,
+        newUsersLast7: 0,
+        newProfilesLast7: 0,
       },
-      revenue: {
-        total: totalRevenue,
-        thisMonth,
-        byPlan: Array.from(byPlanMap.entries()).map(([plan_id, sum]) => ({ plan_id, sum })),
-      },
-      plans: plansRes.data ?? [],
-      byGender: genderCounts.sort((a, b) => b.count - a.count),
-      byReligion: religionCounts.sort((a, b) => b.count - a.count).slice(0, 8),
-      byStatus,
-      byCity: cityCounts.sort((a, b) => b.count - a.count).slice(0, 6),
-    });
+      revenue,
+      byGender: (body.byGender as DashboardPayload["byGender"]) ?? [],
+      byReligion: (body.byReligion as DashboardPayload["byReligion"]) ?? [],
+      byStatus: (body.byStatus as DashboardPayload["byStatus"]) ?? [],
+      byCity: (body.byCity as DashboardPayload["byCity"]) ?? [],
+      plans: (plansRes.data ?? []) as { id: string; name: string }[],
+    };
+
+    if (plansRes.error) {
+      return NextResponse.json({ error: plansRes.error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(out);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to load dashboard stats" },

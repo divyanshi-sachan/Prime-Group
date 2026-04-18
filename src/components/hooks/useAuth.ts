@@ -21,11 +21,6 @@ export function useAuth() {
       setIsLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
-      setUser(data.session?.user ?? null);
-      setIsLoading(false);
-    });
-
     return () => subscription.unsubscribe();
   }, [supabase]);
 
