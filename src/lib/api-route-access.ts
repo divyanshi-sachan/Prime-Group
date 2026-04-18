@@ -9,6 +9,7 @@
  * | POST | /api/contact | public | Validated body; **service-role** insert (no session cookie) |
  * | GET | /api/settings/payment-method | public | Service role read `app_settings` |
  * | POST | /api/auth/resend-verification | public | Resend first (Admin magiclink + Resend), fallback `auth.resend` (Supabase SMTP); rate limits |
+ * | POST | /api/auth/forgot-password | public | Resend first (Admin recovery link + Resend), fallback `resetPasswordForEmail` (Supabase SMTP); rate limits |
  * | POST | /api/auth/sign-up | public | Admin generateLink + Resend then Supabase `auth.resend`; 501 only if no service role → client `signUp` |
  * | POST | /api/payments/verify | public_hmac | Valid Razorpay HMAC + service role (no user session) |
  * | POST | /api/payments/confirm-upi | admin | `requireAdminApiUser()` |

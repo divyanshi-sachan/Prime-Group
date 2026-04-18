@@ -39,6 +39,39 @@ export async function sendSignupConfirmationViaSupabaseSmtp(
   return { ok: true };
 }
 
+/**
+ * Fallback: Supabase Auth sends the password recovery link (project SMTP / default mailer).
+ */
+export async function sendPasswordRecoveryViaSupabaseSmtp(
+  emailNorm: string,
+  redirectTo: string,
+): Promise<{ ok: true } | { ok: false; error: string; cooldownSec?: number }> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) {
+    return { ok: false, error: "Supabase URL or anon key is not configured." };
+  }
+  const supabase = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await supabase.auth.resetPasswordForEmail(emailNorm, { redirectTo });
+  if (error) {
+    const raw = error.message ?? "Could not send recovery email";
+    const m = raw.toLowerCase();
+    const match = m.match(/after\s+(\d+)\s+seconds?/);
+    const cooldownSec = match ? Number(match[1]) : undefined;
+    if (m.includes("for security purposes") && Number.isFinite(cooldownSec)) {
+      return {
+        ok: false,
+        error: `Please wait ${cooldownSec} seconds before requesting another reset email.`,
+        cooldownSec,
+      };
+    }
+    return { ok: false, error: raw };
+  }
+  return { ok: true };
+}
+
 export function isResendConfigured(): boolean {
   return (
     Boolean(process.env.RESEND_API_KEY?.trim()) &&
@@ -271,6 +304,65 @@ export function buildSignupConfirmationEmail(confirmUrl: string): {
         <td class="footer">
           <p class="footer-text">© ${new Date().getFullYear()} Prime Group. All rights reserved.</p>
           <p class="footer-text">This is an automated message, please do not reply.</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>`;
+  return { subject, text, html };
+}
+
+/** Password reset link from Admin `generateLink` (type `recovery`). */
+export function buildPasswordRecoveryEmail(resetUrl: string): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const subject = "Reset your Prime Group password";
+  const text = `We received a request to reset your Prime Group password.\n\nOpen this link to choose a new password:\n${resetUrl}\n\nIf you didn't request this, you can ignore this email.`;
+  const safeUrl = escapeHtml(resetUrl);
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=General+Sans:wght@400;500;600&display=swap');
+    body { margin:0;padding:0;background:#fcfcfc;font-family:'General Sans',system-ui,sans-serif;color:#1a1a1a;-webkit-font-smoothing:antialiased; }
+    .wrapper { width:100%;table-layout:fixed;background:#fcfcfc;padding-bottom:48px; }
+    .main { background:#fff;margin:32px auto 0;max-width:600px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.04);border:1px solid #f0f0f0;overflow:hidden; }
+    .header { background:#0c1a30;padding:36px 0;text-align:center;position:relative; }
+    .header::after { content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#d4af37,#f3e5ab,#d4af37); }
+    .logo { color:#fff;font-family:'Playfair Display',serif;font-size:26px;font-weight:700;letter-spacing:1px;margin:0; }
+    .accent { color:#d4af37; }
+    .content { padding:40px 36px; }
+    .title { font-family:'Playfair Display',serif;font-size:22px;color:#0c1a30;margin:0 0 14px;font-weight:700; }
+    .text { font-size:15px;line-height:1.6;color:#4a5568;margin:0 0 18px; }
+    .btn-container { margin:28px 0;text-align:center; }
+    .btn { display:inline-block;background:#d4af37;color:#fff!important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:15px; }
+    .divider { height:1px;background:#e2e8f0;margin:28px 0; }
+    .fallback { font-size:13px;color:#718096;line-height:1.5;background:#f8fafc;padding:14px;border-radius:6px;word-break:break-all; }
+    .fallback a { color:#0c1a30;text-decoration:underline; }
+    .footer { text-align:center;padding:20px 32px;background:#f8fafc;border-top:1px solid #f1f5f9; }
+    .footer-text { font-size:12px;color:#94a3b8;margin:0 0 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table class="main" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td class="header"><h1 class="logo">PRIME <span class="accent">GROUP</span></h1></td></tr>
+      <tr>
+        <td class="content">
+          <h2 class="title">Password reset</h2>
+          <p class="text">Use the button below to set a new password. This link expires for your security.</p>
+          <div class="btn-container"><a href="${safeUrl}" class="btn">Reset password</a></div>
+          <div class="divider"></div>
+          <div class="fallback">If the button doesn’t work, copy this link:<br><a href="${safeUrl}">${safeUrl}</a></div>
+        </td>
+      </tr>
+      <tr>
+        <td class="footer">
+          <p class="footer-text">If you didn’t request a reset, you can ignore this email.</p>
+          <p class="footer-text">© ${new Date().getFullYear()} Prime Group</p>
         </td>
       </tr>
     </table>

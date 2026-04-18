@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { createAdminServerClient } from "@/lib/supabase/server-admin";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
+import { adminAuthUserRowFromUser } from "@/lib/admin/auth-user-display-fields";
 
 const ADMIN_ROLES = ["admin", "super_admin"];
 const DEFAULT_PER_PAGE = 50;
@@ -50,15 +52,7 @@ export async function GET(request: Request) {
     }
 
     const raw = listData?.users ?? [];
-    const users = raw.map((u) => ({
-      id: u.id,
-      email: u.email ?? null,
-      phone: u.phone ?? null,
-      created_at: u.created_at,
-      email_confirmed_at: u.email_confirmed_at ?? null,
-      last_sign_in_at: u.last_sign_in_at ?? null,
-      is_anonymous: u.is_anonymous ?? false,
-    }));
+    const users = raw.map((u) => adminAuthUserRowFromUser(u as User));
 
     return NextResponse.json({
       users,

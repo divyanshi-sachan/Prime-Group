@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -148,9 +148,18 @@ interface OnboardingWizardProps {
   userId: string;
   existingProfileId?: string;
   email?: string;
+  /** From sign-up / profile so step 0 and contact step can start filled. */
+  signupPrefillName?: string;
+  signupPrefillPhone?: string;
 }
 
-export function OnboardingWizard({ userId, existingProfileId, email }: OnboardingWizardProps) {
+export function OnboardingWizard({
+  userId,
+  existingProfileId,
+  email,
+  signupPrefillName,
+  signupPrefillPhone,
+}: OnboardingWizardProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const reduxStepIndex = useAppSelector(selectStepIndex);
@@ -158,6 +167,26 @@ export function OnboardingWizard({ userId, existingProfileId, email }: Onboardin
   const reduxStep2 = useAppSelector(selectStep2);
   const reduxStep3 = useAppSelector(selectStep3);
   const isVisible = useAppSelector(selectIsVisible);
+
+  const seededSignupFields = useRef(false);
+  useEffect(() => {
+    if (seededSignupFields.current) return;
+    const name = signupPrefillName?.trim();
+    const phone = signupPrefillPhone?.trim();
+    if (!name && !phone) {
+      seededSignupFields.current = true;
+      return;
+    }
+    const currentName = (reduxStep1.full_name ?? "").trim();
+    const currentPhone = (reduxStep2.contact_number ?? "").trim();
+    if (name && !currentName) {
+      dispatch(updateStep1({ full_name: name }));
+    }
+    if (phone && !currentPhone) {
+      dispatch(updateStep2({ contact_number: phone }));
+    }
+    seededSignupFields.current = true;
+  }, [dispatch, signupPrefillName, signupPrefillPhone, reduxStep1.full_name, reduxStep2.contact_number]);
 
   const [step, setStep] = useState(reduxStepIndex);
   const [saving, setSaving] = useState(false);

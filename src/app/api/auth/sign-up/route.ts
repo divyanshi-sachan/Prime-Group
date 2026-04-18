@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { signupPasswordSchema } from "@/lib/auth/password-policy";
+import { signupProfileFieldsSchema, signupMetadataFromFields } from "@/lib/auth/sign-up-fields";
 import { getSiteUrl } from "@/lib/site";
 import { createServiceRoleClient } from "@/lib/supabase/server-service";
 import {
@@ -19,10 +20,12 @@ export const dynamic = "force-dynamic";
  * If the service role key is missing, returns 501 so the client uses `signUp` directly.
  */
 
-const bodySchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: signupPasswordSchema,
-});
+const bodySchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    password: signupPasswordSchema,
+  })
+  .merge(signupProfileFieldsSchema);
 
 const IP_WINDOW_MS = 60 * 60 * 1000;
 const IP_MAX_SIGNUPS_PER_WINDOW = 25;
@@ -88,6 +91,8 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     const first = parsed.error.flatten().fieldErrors;
     const msg =
+      (first.full_name?.[0] as string | undefined) ||
+      (first.phone?.[0] as string | undefined) ||
       (first.email?.[0] as string | undefined) ||
       (first.password?.[0] as string | undefined) ||
       "Invalid request";
@@ -95,7 +100,8 @@ export async function POST(request: Request) {
   }
 
   const emailNorm = normalizeEmail(parsed.data.email);
-  const { password } = parsed.data;
+  const { password, full_name, phone } = parsed.data;
+  const userMeta = signupMetadataFromFields({ full_name, phone });
   const ip = getClientIp(request);
   const now = Date.now();
 
@@ -146,7 +152,7 @@ export async function POST(request: Request) {
     type: "signup",
     email: emailNorm,
     password,
-    options: { redirectTo },
+    options: { redirectTo, data: userMeta },
   });
 
   if (error) {
@@ -170,6 +176,15 @@ export async function POST(request: Request) {
   if (!actionLink || !userId) {
     return NextResponse.json({ error: "Could not create confirmation link." }, { status: 500 });
   }
+
+  const existingMeta = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+  await admin.auth.admin
+    .updateUserById(userId, {
+      user_metadata: { ...existingMeta, ...userMeta } as Record<string, unknown>,
+    })
+    .catch(() => {
+      /* generateLink may already have set metadata */
+    });
 
   let resendError: string | null = null;
   if (isResendConfigured()) {

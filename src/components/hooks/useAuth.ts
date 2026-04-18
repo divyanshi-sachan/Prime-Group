@@ -46,7 +46,17 @@ export function useAuth() {
   const signUp = async (data: AuthFormData, _userType: UserType) => {
     setIsLoading(true);
     setError(null);
-    const result = await memberSignUp(data.email, data.password);
+    const fullName = data.full_name?.trim();
+    const phone = data.phone?.trim();
+    if (!fullName || !phone) {
+      setIsLoading(false);
+      setError("Name and phone number are required to sign up.");
+      return;
+    }
+    const result = await memberSignUp(data.email, data.password, {
+      full_name: fullName,
+      phone,
+    });
     setIsLoading(false);
     if (!result.ok) {
       setError(result.error);

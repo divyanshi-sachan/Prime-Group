@@ -6,8 +6,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { getSiteUrl } from "@/lib/site";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { Spinner } from "@/components/ui/spinner";
 import type { AuthFormData } from "@/components/types/auth";
@@ -28,17 +26,33 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: Pick<AuthFormData, "email">) => {
     setMessage(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/reset-password`,
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
     });
-    if (error) {
-      setMessage({ type: "error", text: error.message });
+    const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+    if (!res.ok) {
+      if (res.status === 429) {
+        setMessage({
+          type: "error",
+          text:
+            payload.error ??
+            "Too many reset requests. Please wait before trying again.",
+        });
+        return;
+      }
+      setMessage({
+        type: "error",
+        text:
+          payload.error ??
+          "Could not send the reset link. If this keeps happening, check email settings (Resend / Supabase SMTP) and redirect URLs.",
+      });
       return;
     }
     setMessage({
       type: "success",
-      text: "Check your email for the password reset link.",
+      text: "If an account exists for that email, we sent a password reset link. Check your inbox and spam folder.",
     });
   };
 

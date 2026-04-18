@@ -30,10 +30,24 @@ export default async function OnboardingPage() {
     redirect("/discover");
   }
 
+  const meta = user.user_metadata as Record<string, unknown> | undefined;
+  const metaName = typeof meta?.full_name === "string" ? meta.full_name.trim() : "";
+  const metaPhone = typeof meta?.phone === "string" ? meta.phone.trim() : "";
+  const profileName = profile?.full_name?.trim() ?? "";
+  const profilePhone = profile?.contact_number != null ? String(profile.contact_number).trim() : "";
+  const signupPrefillName = profileName || metaName || undefined;
+  const signupPrefillPhone = profilePhone || metaPhone || undefined;
+
   return (
     <div className="relative min-h-screen bg-[#FDFBF7]">
       <section className="relative z-0 mx-auto max-w-[1400px] w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <OnboardingWizard userId={user.id} existingProfileId={profile?.id} email={user.email} />
+        <OnboardingWizard
+          userId={user.id}
+          existingProfileId={profile?.id}
+          email={user.email}
+          signupPrefillName={signupPrefillName}
+          signupPrefillPhone={signupPrefillPhone}
+        />
       </section>
     </div>
   );

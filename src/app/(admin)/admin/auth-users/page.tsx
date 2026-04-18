@@ -12,30 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KeyRound, RefreshCw, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
+import { KeyRound, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useAdminViewMode } from "@/hooks/use-admin-view-mode";
 import { AdminViewModeToggle } from "@/components/admin/admin-view-mode-toggle";
+import type { AdminAuthUserListRow } from "@/lib/admin/auth-user-display-fields";
 
-interface AuthUserRow {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  created_at: string;
-  email_confirmed_at: string | null;
-  last_sign_in_at: string | null;
-  is_anonymous: boolean;
-}
+type AuthUserRow = AdminAuthUserListRow;
+type AuthUsersSegment = "all" | "no_profile";
 
 const VIEW_KEY = "adminAuthUsersViewMode";
 
 export default function AdminAuthUsersPage() {
+  const [segment, setSegment] = useState<AuthUsersSegment>("all");
   const [users, setUsers] = useState<AuthUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useAdminViewMode(VIEW_KEY, "cards");
   const perPage = 50;
 
@@ -43,7 +37,11 @@ export default function AdminAuthUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/auth-users?page=${p}&perPage=${perPage}`, {
+      const path =
+        segment === "no_profile"
+          ? `/api/admin/auth-users/no-profile?page=${p}&perPage=${perPage}`
+          : `/api/admin/auth-users?page=${p}&perPage=${perPage}`;
+      const res = await fetch(path, {
         credentials: "include",
       });
       const json = (await res.json()) as {
@@ -62,7 +60,7 @@ export default function AdminAuthUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [perPage]);
+  }, [perPage, segment]);
 
   useEffect(() => {
     void fetchUsers(page);
@@ -71,54 +69,61 @@ export default function AdminAuthUsersPage() {
   const formatDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
-  const copyId = async (id: string) => {
-    try {
-      await navigator.clipboard.writeText(id);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 2000);
-    } catch {
-      /* ignore */
-    }
-  };
-
   const cardStyle = { borderColor: "rgba(212, 175, 55, 0.25)", backgroundColor: "white" };
-
-  const CopyIdButton = ({ userId, layout }: { userId: string; layout: "list" | "cards" }) => {
-    const done = copiedId === userId;
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className={`gap-2 min-h-10 px-4 font-general font-semibold rounded-lg border-2 shadow-sm ${layout === "cards" ? "w-full sm:w-auto" : ""}`}
-        style={{
-          borderColor: done ? "rgb(22 163 74)" : "rgba(212, 175, 55, 0.45)",
-          color: done ? "rgb(21 128 61)" : "var(--primary-blue)",
-          backgroundColor: "white",
-        }}
-        onClick={() => void copyId(userId)}
-      >
-        {done ? <Check className="w-4 h-4 shrink-0" aria-hidden /> : <Copy className="w-4 h-4 shrink-0" aria-hidden />}
-        {done ? "Copied" : "Copy user ID"}
-      </Button>
-    );
-  };
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-3">
           <h1 className="text-2xl font-playfair-display font-bold flex items-center gap-2" style={{ color: "var(--primary-blue)" }}>
-            <KeyRound className="w-7 h-7" style={{ color: "var(--accent-gold)" }} />
+            <KeyRound className="w-7 h-7 shrink-0" style={{ color: "var(--accent-gold)" }} />
             Auth users
           </h1>
-          <p className="font-general text-sm mt-1 text-gray-600">
-            All accounts in Supabase Auth (email, verification, last sign-in). Paginated.
+          <p className="font-general text-sm text-gray-600 max-w-3xl">
+            Browse everyone in Auth, or members who have <span className="font-medium">no active profile</span>{" "}
+            in the database (no <span className="font-medium">profiles</span> row with{" "}
+            <span className="font-medium">deleted_at</span> null). Anyone with a live profile—including
+            pending or active—is excluded. Name and phone come from Auth metadata when present.
           </p>
+          <div
+            className="inline-flex flex-wrap rounded-xl border p-1 bg-white shadow-sm"
+            style={{ borderColor: "rgba(212, 175, 55, 0.45)" }}
+            role="tablist"
+            aria-label="Which accounts to show"
+          >
+            <Button
+              type="button"
+              variant={segment === "all" ? "default" : "ghost"}
+              size="sm"
+              className={`rounded-lg font-general px-4 ${segment === "all" ? "text-white shadow-sm" : "text-gray-700"}`}
+              style={segment === "all" ? { backgroundColor: "var(--primary-blue)" } : undefined}
+              onClick={() => {
+                setSegment("all");
+                setPage(1);
+              }}
+              aria-pressed={segment === "all"}
+            >
+              All accounts
+            </Button>
+            <Button
+              type="button"
+              variant={segment === "no_profile" ? "default" : "ghost"}
+              size="sm"
+              className={`rounded-lg font-general px-4 ${segment === "no_profile" ? "text-white shadow-sm" : "text-gray-700"}`}
+              style={segment === "no_profile" ? { backgroundColor: "var(--primary-blue)" } : undefined}
+              onClick={() => {
+                setSegment("no_profile");
+                setPage(1);
+              }}
+              aria-pressed={segment === "no_profile"}
+            >
+              No active profile
+            </Button>
+          </div>
         </div>
         <Button
           variant="outline"
-          className="gap-2 rounded-xl font-general"
+          className="gap-2 rounded-xl font-general shrink-0 self-start"
           style={{ borderColor: "var(--accent-gold)" }}
           onClick={() => void fetchUsers(page)}
           disabled={loading}
@@ -137,18 +142,23 @@ export default function AdminAuthUsersPage() {
       <Card className="rounded-xl border shadow-sm" style={cardStyle}>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0">
           <CardTitle className="font-playfair-display" style={{ color: "var(--primary-blue)" }}>
-            Supabase Auth · Page {page}
+            {segment === "no_profile" ? "Signed up, no active profile" : "Supabase Auth"} · Page {page}
           </CardTitle>
           {!loading && users.length > 0 ? <AdminViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              <Spinner size="md" label="Loading auth users…" />
+              <Spinner
+                size="md"
+                label={segment === "no_profile" ? "Loading users without a profile…" : "Loading auth users…"}
+              />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8 text-gray-500 font-general rounded-lg border" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
-              No users found.
+              {segment === "no_profile"
+                ? "Every member account has at least one active profile row. There is no one in this list right now."
+                : "No users found."}
             </div>
           ) : viewMode === "list" ? (
             <div className="rounded-lg border overflow-x-auto" style={{ borderColor: "rgba(212, 175, 55, 0.2)" }}>
@@ -156,11 +166,11 @@ export default function AdminAuthUsersPage() {
                 <TableHeader>
                   <TableRow className="bg-gray-50">
                     <TableHead className="font-general min-w-[200px]">Email</TableHead>
-                    <TableHead className="font-general">Phone</TableHead>
+                    <TableHead className="font-general min-w-[140px]">Name</TableHead>
+                    <TableHead className="font-general min-w-[120px]">Phone</TableHead>
                     <TableHead className="font-general">Email verified</TableHead>
                     <TableHead className="font-general">Created</TableHead>
                     <TableHead className="font-general">Last sign-in</TableHead>
-                    <TableHead className="font-general min-w-[200px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,6 +184,7 @@ export default function AdminAuthUsersPage() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell className="py-4 text-sm text-gray-700">{u.full_name ?? "—"}</TableCell>
                       <TableCell className="py-4 text-sm text-gray-700">{u.phone ?? "—"}</TableCell>
                       <TableCell className="py-4">
                         {u.email_confirmed_at ? (
@@ -184,9 +195,6 @@ export default function AdminAuthUsersPage() {
                       </TableCell>
                       <TableCell className="py-4 text-sm text-gray-600 whitespace-nowrap">{formatDate(u.created_at)}</TableCell>
                       <TableCell className="py-4 text-sm text-gray-600 whitespace-nowrap">{formatDate(u.last_sign_in_at)}</TableCell>
-                      <TableCell className="py-4 text-right">
-                        <CopyIdButton userId={u.id} layout="list" />
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -222,6 +230,10 @@ export default function AdminAuthUsersPage() {
                   </div>
                   <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 space-y-2 text-sm font-general">
                     <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium text-gray-800">{u.full_name ?? "—"}</p>
+                    </div>
+                    <div>
                       <p className="text-xs text-gray-500">Phone</p>
                       <p className="font-medium text-gray-800">{u.phone ?? "—"}</p>
                     </div>
@@ -233,12 +245,7 @@ export default function AdminAuthUsersPage() {
                       <p className="text-xs text-gray-500">Last sign-in</p>
                       <p className="text-gray-700">{formatDate(u.last_sign_in_at)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">User ID</p>
-                      <p className="font-mono text-xs break-all text-gray-600">{u.id}</p>
-                    </div>
                   </div>
-                  <CopyIdButton userId={u.id} layout="cards" />
                 </div>
               ))}
             </div>

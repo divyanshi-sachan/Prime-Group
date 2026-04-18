@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AuthInput } from "./AuthInput";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,6 +16,7 @@ import { getSiteUrl } from "@/lib/site";
 import { memberSignUp } from "@/lib/auth/member-sign-up";
 import type { AuthFormData } from "../types/auth";
 import { PASSWORD_REQUIREMENT_HINT, signupPasswordSchema } from "@/lib/auth/password-policy";
+import { signupProfileFieldsSchema } from "@/lib/auth/sign-up-fields";
 import { authFormAccentLinkClass, authFormLegalLinkClass } from "@/components/auth/auth-accent-link";
 
 const signInSchema = z.object({
@@ -28,18 +29,11 @@ const signUpSchema = signInSchema
   .omit({ password: true })
   .extend({
     password: signupPasswordSchema,
-    confirmPassword: z.string(),
     acceptTerms: z.literal(true, {
       errorMap: () => ({ message: "You must accept the Terms and Privacy Policy" }),
     }),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type SignInFormData = z.infer<typeof signInSchema>;
-type SignUpFormData = z.infer<typeof signUpSchema>;
+  .merge(signupProfileFieldsSchema);
 
 const inputErrorClass = "text-red-500 text-sm";
 
@@ -108,13 +102,16 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
     },
   });
 
-  const onSubmit = async (data: AuthFormData & { confirmPassword?: string; acceptTerms?: boolean }) => {
+  const onSubmit = async (data: AuthFormData & { acceptTerms?: boolean }) => {
     setMessage(null);
     setPendingVerificationEmail(null);
     const supabase = createClient();
 
     if (isSignUp) {
-      const result = await memberSignUp(data.email, data.password);
+      const result = await memberSignUp(data.email, data.password, {
+        full_name: data.full_name!,
+        phone: data.phone!,
+      });
       if (!result.ok) {
         setMessage({ type: "error", text: result.error });
         return;
@@ -271,6 +268,17 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
           </div>
         )}
 
+        {isSignUp && (
+          <AuthInput
+            type="text"
+            name="full_name"
+            placeholder="Full name"
+            label="Full name"
+            icon={User}
+            register={register as any}
+            error={(errors as any).full_name?.message as string | undefined}
+          />
+        )}
         <AuthInput
           type="email"
           name="email"
@@ -280,6 +288,17 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
           register={register as any}
           error={errors.email?.message as string | undefined}
         />
+        {isSignUp && (
+          <AuthInput
+            type="tel"
+            name="phone"
+            placeholder="Phone number"
+            label="Phone number"
+            icon={Phone}
+            register={register as any}
+            error={(errors as any).phone?.message as string | undefined}
+          />
+        )}
         <AuthInput
           type="password"
           name="password"
@@ -295,15 +314,6 @@ export function AuthForm({ mode, hideTitle = false, submitLabel, className, next
 
         {isSignUp && (
           <>
-            <AuthInput
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm password"
-              label="Confirm password"
-              icon={Lock}
-              register={register as any}
-              error={(errors as any).confirmPassword?.message as string | undefined}
-            />
             <div className="flex items-start gap-2">
               <input
                 type="checkbox"

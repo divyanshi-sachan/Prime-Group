@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { getSiteUrl } from "@/lib/site";
+import type { SignupProfileFields } from "@/lib/auth/sign-up-fields";
+import { signupMetadataFromFields } from "@/lib/auth/sign-up-fields";
 
 /** Supabase built-in mailer often returns this when SMTP is not set or fails. */
 export function mapSignUpEmailError(raw: string): string {
@@ -28,13 +30,18 @@ export type MemberSignUpResult =
 /**
  * Tries server-side sign-up (Resend + Admin generateLink) when configured; otherwise uses Supabase client signUp.
  */
-export async function memberSignUp(email: string, password: string): Promise<MemberSignUpResult> {
+export async function memberSignUp(
+  email: string,
+  password: string,
+  profile: SignupProfileFields
+): Promise<MemberSignUpResult> {
   const redirectTarget = `${getSiteUrl()}/auth/callback?next=/hi`;
+  const userMeta = signupMetadataFromFields(profile);
 
   const tryServer = await fetch("/api/auth/sign-up", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, full_name: profile.full_name, phone: profile.phone }),
   });
   const serverPayload = (await tryServer.json().catch(() => ({}))) as {
     ok?: boolean;
@@ -70,7 +77,7 @@ export async function memberSignUp(email: string, password: string): Promise<Mem
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: redirectTarget },
+    options: { emailRedirectTo: redirectTarget, data: userMeta },
   });
 
   if (error) {
